@@ -17,6 +17,7 @@ SET(SOURCE
   src/s_energy_matrix.cpp	
   src/Hotspot.cc
   src/sparse_tree.cc
+  src/common.cc
 )
 
 set(constraints_SOURCE

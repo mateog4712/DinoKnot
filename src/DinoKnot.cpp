@@ -147,34 +147,62 @@ int main (int argc, char *argv[]) {
 
 	start_hybrid_penalty = args_info.pen_given ? hybrid_pen : get_START_HYBRID_PENALTY(model_1_Type,model_2_Type);
 
-	cmdline_parser_free(&args_info);
-
 	linker_pos = inputSequence1.length();
 
 	//                                                   Energy Model Portion 
 //-----------------------------------------------------------------------------------------------------------
 	vrna_param_s *params1;
 	vrna_param_s *params2;
-	if(type_1 == 0){
-		std::string file = "src/params/rna_turner2004.par";
+	if(args_info.parameter1_given){
+		std::string file = parameter1;
+		if(file!=""){
+		vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
+		}
 		params1 = scale_parameters();
+
 	}
 	else{
-		std::string file = "src/params/dna_matthews2004.par";
-		params1 = scale_parameters();
+		if(type_1 == 0){
+			std::string file = "src/params/rna_turner2004.par";
+			if(file!=""){
+				vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
+			}
+			params1 = scale_parameters();
+		}
+		else{
+			std::string file = "src/params/dna_matthews2004.par";
+			if(file!=""){
+				vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
+			}
+			params1 = scale_parameters();
+		}
 	}
-
-	if(type_2 == 0){
-		std::string file = "src/params/rna_turner2004.par";
+	if(args_info.parameter2_given){
+		std::string file = parameter2;
+		if(file!=""){
+			vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
+		}
 		params2 = scale_parameters();
 	}
 	else{
-		std::string file = "src/params/dna_matthews2004.par";
-		params2 = scale_parameters();
+		if(type_2 == 0){
+			std::string file = "src/params/rna_turner2004.par";
+			if(file!=""){
+				vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
+			}
+			params2 = scale_parameters();
+		}
+		else{
+			std::string file = "src/params/dna_matthews2004.par";
+			if(file!=""){
+				vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
+			}
+			params2 = scale_parameters();
+		}
 	}
-
 	params1->model_details.dangles = dangle;
 	params2->model_details.dangles = dangle;
+	cmdline_parser_free(&args_info);
 //--------------------------------------------------------------------------------------------------------------------------
 
 	std::vector<Hotspot> hotspot_list1;
@@ -220,40 +248,34 @@ int main (int argc, char *argv[]) {
 		std::vector<Result> result_list;
 		
 		cand_pos_t n = seq.length();
-	// 	for(int i =0; i < hotspot_list1.size(); i++){
-	// 		for(int j = 0; j < hotspot_list2.size(); j++){
+		for(int i =0; i < hotspot_list1.size(); i++){
+			for(int j = 0; j < hotspot_list2.size(); j++){
 				
-	// 			char structure[length+1];
-	// 			char restricted[length+1];
 				double final_energy = 0;
-				std::string restricted = hotspot_list1[0].get_structure() + "xxxxx" + hotspot_list2[0].get_structure();
-	// 			strcpy(restricted, struc.c_str());
+				int method_chosen = 1;
+				std::string restricted = hotspot_list1[i].get_structure() + "xxxxx" + hotspot_list2[j].get_structure();
 				
-				std::string structure = Iterative_HFold_interacting(seq,restricted,final_energy,params1,params2);
-	// 			double energy = hfold_interacting_emodel(sequence, restricted, structure, energy_models);
+				std::string structure = Iterative_HFold_interacting(seq,restricted,final_energy,params1,params2,method_chosen);
 				
-	// 			std::string res(restricted);
-	// 			std::string final(structure);
-				// Result result(seq,restricted,final,energy);
-	// 			result_list.push_back(result);
-				std::cout << "Result_" << 0 << ":     " << structure << " (" << final_energy << ")" << std::endl;
-	// 		}
-	// 	}
+				Result result(seq,restricted,hotspot_list1[i].get_energy()+hotspot_list2[i].get_energy(),structure,final_energy,method_chosen);
+				result_list.push_back(result);
+				std::cout << restricted << std::endl;
+				std::cout << structure << " (" << final_energy << ")" << std::endl;
+			}
+		}
 	
 		Result::Result_comp result_comp;
 		std::sort(result_list.begin(), result_list.end(),result_comp );
 		free(params1);
 		free(params2);
 
-	// 	destruct_energy_model(&model_1);
-	// 	destruct_energy_model(&model_2);
 
 	// 	//kevin 5 oct 2017
-	// 	int number_of_output = 1;
+		int number_of_output = 1;
 	// 	// //printf("number_of_suboptimal_structure: %d\n",number_of_suboptimal_structure);
-	// 	if(number_of_suboptimal_structure != 1){
-	// 		number_of_output = std::min( (int) result_list.size(),number_of_suboptimal_structure);
-	// 	}
+		if(number_of_suboptimal_structure != 1){
+			number_of_output = std::min( (int) result_list.size(),number_of_suboptimal_structure);
+		}
 
 	// 	//Mateo 7/19/2023
 	// 	//output to file

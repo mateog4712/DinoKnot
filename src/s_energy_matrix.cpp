@@ -28,6 +28,7 @@
 #include <algorithm>
 
 #include "s_energy_matrix.hh"
+#include "common.hh"
 
 
 
@@ -472,12 +473,15 @@ void s_energy_matrix::compute_energy_restricted_emodel (cand_pos_t i, cand_pos_t
     {
         bool canH = !(tree.up[j-1]<(j-i-1));
         if(canH) {
-			energy_t en = HairpinE(seq_,S_,S1_,params_,i,j) + HairpinE(seq_,S_,S1_,params2_,i,j);
-			en /= 2;
+			energy_t en = emodel_energy_function(i,j,HairpinE(seq_,S_,S1_,params_,i,j),HairpinE(seq_,S_,S1_,params2_,i,j));
+
+			if( is_cross_model(i,j) ) {    // If cross model 
+                   min_en[0] += start_hybrid_penalty;  
+			}
 			min_en[0] = en;
 		}
-        min_en[1] = compute_internal_restricted(i,j,params_,tree.up) + compute_internal_restricted(i,j,params2_,tree.up);
-		min_en[1]/=2;
+		energy_t en = emodel_energy_function(i,j,compute_internal_restricted(i,j,params_,tree.up),compute_internal_restricted(i,j,params2_,tree.up));
+		min_en[1] = en;
 
 		// No params here which means the values were computed elsewhere so I don't do the emodel calc here
         min_en[2] = compute_energy_VM_restricted(i,j,tree);
@@ -516,7 +520,8 @@ void s_energy_matrix::compute_hotspot_energy (cand_pos_t i, cand_pos_t j, bool i
         energy = compute_stack(i,j,params_);
         // printf("stack: %d\n",energy);
     }else{
-        energy = HairpinE(seq_,S_,S1_,params_,i,j);
+        // energy = HairpinE(seq_,S_,S1_,params_,i,j);
+		energy = 0;
         // printf("hairpin: %d\n",energy);
     }
         

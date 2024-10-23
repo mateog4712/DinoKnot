@@ -35,6 +35,10 @@ std::string hotspot_dir;
 
 int dangle_model;
 
+std::string parameter1;
+
+std::string parameter2;
+
 static char *package_name = 0;
 
 const char *args_info_purpose = "Minimum free energy folding of RNA-RNA, RNA-DNA and DNA-DNA interactions";
@@ -61,7 +65,9 @@ const char *args_info_help[] = {
   "      --dir              Specify the directory for which each results will have a file",
   "  -k, --hotspot-num      Specify the max number of hotspots per sequence (default is 20)",
   "  -l, --hotspot-only     Specify the path to file to output the hotspots to",
-  "  -d  --dangles          Specify the dangle model to be used", 
+  "  -d  --dangles          Specify the dangle model to be used",
+  "  -P  --parameter1       Specify the parameter model for sequence1", 
+  "  -Q  --parameter2       Specify the parameter model for sequence2", 
 };
 
 static void clear_given (struct args_info *args_info);
@@ -91,6 +97,8 @@ static void init_args_info(struct args_info *args_info)
   args_info->h_num_help = args_info_help[14] ;
   args_info->h_only_help = args_info_help[15] ;
   args_info->dangles_help = args_info_help[16] ;
+  args_info->parameter1_help = args_info_help[17] ;
+  args_info->parameter2_help = args_info_help[18] ;
   
 }
 void
@@ -148,6 +156,8 @@ static void clear_given (struct args_info *args_info)
   args_info->h_num_given = 0 ;
   args_info->h_only_given = 0 ;
   args_info->dangles_given = 0;
+  args_info->parameter1_given = 0;
+  args_info->parameter2_given = 0;
 }
 
 static void clear_args (struct args_info *args_info)
@@ -349,10 +359,12 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         {"hotspot-num", required_argument, NULL, 'k'}, 
         {"hotspot-only", required_argument, NULL, 'l'},
         { "dangles",	0, NULL, 'd' },
+        { "parameter1",	0, NULL, 'P' },
+        { "parameter2",	0, NULL, 'Q' },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVp:n:i:o:d:k:l:", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVp:n:i:o:d:k:l:P:Q:", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -427,6 +439,30 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
             goto failure;
 
             output_dir = optarg;
+        
+          break;
+
+          case 'P':	/* Specify output file  */
+        
+        
+          if (update_arg( 0 , 
+               0 , &(args_info->parameter1_given),
+              &(local_args_info.parameter1_given), optarg, 0, 0, ARG_NO,0, 0,"parameter1", 'P',additional_error))
+            goto failure;
+
+            parameter1 = optarg;
+        
+          break;
+
+          case 'Q':	/* Specify output file  */
+        
+        
+          if (update_arg( 0 , 
+               0 , &(args_info->parameter2_given),
+              &(local_args_info.parameter2_given), optarg, 0, 0, ARG_NO,0, 0,"parameter2", 'Q',additional_error))
+            goto failure;
+
+            parameter2 = optarg;
         
           break;
 

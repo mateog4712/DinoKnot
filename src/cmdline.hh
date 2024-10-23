@@ -39,6 +39,12 @@ extern int hotspot_num;
 // The dangle model
 extern int dangle_model;
 
+// Parameter model 1
+extern std::string parameter1;
+
+// Parameter model 2
+extern std::string parameter2;
+
 
 /** @brief Where the command line options are stored */
 struct args_info
@@ -59,6 +65,8 @@ struct args_info
   const char *h_num_help; /**< @brief Give a number for how many hotspots per sequence */
   const char *h_only_help; /**< @brief Give a file directory for outputting hotspots */
   const char *dangles_help; /**< @brief Specify the dangle model*/
+  const char *parameter1_help; /**< @brief Specify the parameter model for sequence 1*/
+  const char *parameter2_help; /**< @brief Specify the parameter model for sequence 2*/
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
@@ -76,6 +84,8 @@ struct args_info
   unsigned int h_num_given ;	/**< @brief Whether hotspot_num was given.  */
   unsigned int h_only_given ;	/**< @brief Whether hotspot_only was given.  */
   unsigned int dangles_given ;  /**< @brief Whether dangle model was given.  */
+  unsigned int parameter1_given; /**< @brief Whether the parameter model for sequence 1 was given.  */
+  unsigned int parameter2_given; /**< @brief Whether the parameter model for sequence 2 was given.  */
 
   char **inputs ; /**< @brief unnamed options (options without names) */
   unsigned inputs_num ; /**< @brief unnamed options number */
