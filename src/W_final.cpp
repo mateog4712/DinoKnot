@@ -1,6 +1,7 @@
 #include "W_final.hh"
 #include "h_struct.hh"
 #include "h_externs.hh"
+#include "common.hh"
 
 #include <stdio.h>
 #include <math.h>
@@ -90,8 +91,8 @@ energy_t W_final::hfold_interacting(sparse_tree &tree){
 			if(!pk_free) WMB->compute_energies(i,j,tree);
 
 
-			V->compute_WMv_WMp(i,j,WMB->get_WMB(i,j),tree.tree);
-			V->compute_energy_WM_restricted(i,j,tree);
+			V->compute_WMv_WMp_emodel(i,j,WMB->get_WMB(i,j),tree.tree);
+			V->compute_energy_WM_restricted_emodel(i,j,tree);
 		}
 
 	}
@@ -322,6 +323,7 @@ void W_final::backtrack_restricted(seq_interval *cur_interval, sparse_tree &tree
 				{
 					f[i].type = INTER;
 					f[j].type = INTER;
+
 					// detect the other closing pair
 					cand_pos_t best_ip=j, best_jp=i;
 					energy_t min = INF;
@@ -832,6 +834,622 @@ void W_final::backtrack_restricted(seq_interval *cur_interval, sparse_tree &tree
 					min = V->get_energy_WMp(i,j-1);
 					best_row = 2;
 				}
+			}
+			switch (best_row){
+				case 1: insert_node (i, j, P_WMB); break;
+				case 2: insert_node (i, j-1, M_WMp); break;
+			}
+		}
+		break;
+		case P_WMB:
+		case P_WMBP:
+		case P_WMBW:
+		case P_VP:
+		case P_VPR:
+		case P_VPL:
+		case P_WI:
+		case P_BE:
+		case P_WIP:
+		{
+			WMB->set_stack_interval(stack_interval);
+			WMB->back_track(structure,f,cur_interval,tree);
+			stack_interval = WMB->get_stack_interval();
+			structure = WMB->get_structure();
+			f = WMB->get_minimum_fold();
+		}
+			break;
+		default:
+			printf("Should not be here!\n");
+	}
+
+
+}
+
+void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tree &tree){
+    char type;
+
+
+	// printf("type is %c and i is %d and j is %d\n",cur_interval->type,cur_interval->i,cur_interval->j);
+	//Hosna, March 8, 2012
+	// changing nested if to switch for optimality
+	// printf("At %c at %d and %d\n",cur_interval->type,cur_interval->i,cur_interval->j);
+	switch (cur_interval->type){
+		case LOOP:
+		{
+			int i = cur_interval->i;
+			int j = cur_interval->j;
+			if (i >= j)
+				return;
+			f[i].pair = j;
+			f[j].pair = i;
+
+			// Hosna Jun. 28 2007
+			// if the pairing is part of original structure, put '(' and ')' in the structure
+			// otherwise make it '[' and ']' -- changed to () if pseudoknot-free and [] if pseudoknotted -Mateo
+			structure[i] = '(';
+			structure[j] = ')';		
+
+			type = V->get_type (i,j);
+			
+			// Hosna, March 8, 2012
+			// changing nested ifs to switch for optimality
+			switch (type){
+				case HAIRP:
+			//else if (type == HAIRP)
+				{
+					f[i].type = HAIRP;
+					f[j].type = HAIRP;
+				}
+					break;
+				case INTER:
+			//else if (type == INTER)
+				{
+					f[i].type = INTER;
+					f[j].type = INTER;
+
+					int skip = 0;
+
+					if(is_cross_model(i,j)){
+						skip = linker_length;
+
+					}
+					// detect the other closing pair
+					cand_pos_t best_ip=j, best_jp=i;
+					energy_t min = INF;
+					cand_pos_t max_ip = std::min(j-TURN-2,i+MAXLOOP+1+skip);
+					for (cand_pos_t k = i+1; k <= max_ip; ++k)
+					{
+						if (tree.up[k-1]>=(k-i-1)){
+							cand_pos_t min_l=std::max(k+TURN+1 + MAXLOOP+2, k+j-i-skip) - MAXLOOP-2;
+							for (cand_pos_t l = j-1; l >= min_l; --l)
+							{
+								
+								if(tree.up[j-1]>=(j-l-1)){
+							
+									energy_t tmp = V->compute_int(i,j,k,l,params_);
+									if( is_cross_model(i,j) && !(is_cross_model(k,l))) tmp += start_hybrid_penalty;
+									if (tmp < min)
+									{
+										min = tmp;
+										best_ip = k;
+										best_jp = l;
+									}
+								}
+							}
+						}
+					}
+
+					if (best_ip < best_jp)
+						insert_node (best_ip, best_jp, LOOP);
+					else
+					{
+						fprintf(stderr,"NOT GOOD RESTR INTER, i=%d, j=%d, best_ip=%d, best_jp=%d\n", i, j, best_ip, best_jp);
+						exit (0);
+					}
+				}
+					break;
+				case MULTI:
+			//else if (type == MULTI)
+				{
+					f[i].type = MULTI;
+					f[j].type = MULTI;
+					int best_k = -1, best_row = -1;
+					int tmp= INF, min = INF;
+					for (cand_pos_t k = i+1; k <= j-1; k++){
+
+						if(seq_[k] == 'X') continue;
+						
+
+						tmp = V->get_energy_WM (i+1,k-1) + std::min(V->get_energy_WMv(k, j-1),V->get_energy_WMp(k, j-1));
+						tmp += emodel_energy_function(i,j,E_MLstem(pair[S_[j]][S_[i]],-1,-1,params_) + params_->MLclosing,E_MLstem(pair[S_[j]][S_[i]],-1,-1,params2_) + params2_->MLclosing);
+						if (tmp < min)
+						  {
+							min = tmp;
+							best_k = k;
+							best_row = 1;
+						  }
+						  // TODO:
+						  // Hosna, May 1st, 2012
+						  // do I need to check for non-canonical base pairings here as well so the dangle values not be INF??
+						if (tree.tree[i+1].pair <= -1)
+						{
+							tmp = V->get_energy_WM (i+2,k-1) + std::min(V->get_energy_WMv(k, j-1),V->get_energy_WMp(k, j-1));
+							tmp += emodel_energy_function(i,j,E_MLstem(pair[S_[j]][S_[i]],-1,S_[i+1],params_) + params_->MLclosing + params_->MLbase,E_MLstem(pair[S_[j]][S_[i]],-1,S_[i+1],params2_) + params2_->MLclosing + params2_->MLbase);
+							if (tmp < min)
+							{
+								min = tmp;
+								best_k = k;
+								best_row = 2;
+							}
+						}
+						if (tree.tree[j-1].pair <= -1)
+						{
+							tmp = V->get_energy_WM (i+1,k-1) + std::min(V->get_energy_WMv(k, j-2),V->get_energy_WMp(k, j-2));
+							tmp += emodel_energy_function(i,j,E_MLstem(pair[S_[j]][S_[i]],S_[j-1],-1,params_) + params_->MLclosing + params_->MLbase,E_MLstem(pair[S_[j]][S_[i]],S_[j-1],-1,params2_) + params2_->MLclosing + params2_->MLbase);
+							if (tmp < min)
+							{
+								min = tmp;
+								best_k = k;
+								best_row = 3;
+							}
+						}
+						if (tree.tree[i+1].pair <= -1 && tree.tree[j-1].pair <= -1)
+						{
+							tmp = V->get_energy_WM (i+2,k-1) + std::min(V->get_energy_WMv(k, j-2),V->get_energy_WMp(k, j-2));
+							tmp += emodel_energy_function(i,j,E_MLstem(pair[S_[j]][S_[i]],S_[j-1],S_[i+1],params_) + params_->MLclosing + 2*params_->MLbase,E_MLstem(pair[S_[j]][S_[i]],S_[j-1],S_[i+1],params2_) + params2_->MLclosing + 2*params2_->MLbase);
+							
+							if (tmp < min)
+							{
+								min = tmp;
+								best_k = k;
+								best_row = 4;
+							}
+						}
+
+						tmp = static_cast<energy_t>((k-i-1)*params_->MLbase + V->get_energy_WMp(k,j-1));
+						tmp += emodel_energy_function(i,j,E_MLstem(pair[S_[j]][S_[i]],-1,-1,params_) + params_->MLclosing,E_MLstem(pair[S_[j]][S_[i]],-1,-1,params2_) + params2_->MLclosing);
+						if (tmp < min)
+						  {
+							min = tmp;
+							best_k = k;
+							best_row = 5;
+						  }
+						  // TODO:
+						  // Hosna, May 1st, 2012
+						  // do I need to check for non-canonical base pairings here as well so the dangle values not be INF??
+						if (tree.tree[i+1].pair <= -1)
+						{
+							if((k-(i+1)-1) >=0){ 
+								tmp = static_cast<energy_t>((k-(i+1)-1)*params_->MLbase) + V->get_energy_WMp(k,j-1);
+								tmp += emodel_energy_function(i,j,E_MLstem(pair[S_[j]][S_[i]],-1,S_[i+1],params_) + params_->MLclosing + params_->MLbase,E_MLstem(pair[S_[j]][S_[i]],-1,S_[i+1],params2_) + params2_->MLclosing + params2_->MLbase);
+							}
+							if (tmp < min)
+							{
+								min = tmp;
+								best_k = k;
+								best_row = 6;
+							}
+						}
+						if (tree.tree[j-1].pair <= -1)
+						{
+							tmp = static_cast<energy_t>((k-i-1)*params_->MLbase) + V->get_energy_WMp(k,j-2);
+							tmp += emodel_energy_function(i,j,E_MLstem(pair[S_[j]][S_[i]],S_[j-1],-1,params_) + params_->MLclosing + params_->MLbase,E_MLstem(pair[S_[j]][S_[i]],S_[j-1],-1,params2_) + params2_->MLclosing + params2_->MLbase);
+							if (tmp < min)
+							{
+								min = tmp;
+								best_k = k;
+								best_row = 7;
+							}
+						}
+						if (tree.tree[i+1].pair <= -1 && tree.tree[j-1].pair <= -1)
+						{
+							if((k-(i+1)-1) >=0){
+								tmp = static_cast<energy_t>((k-(i+1)-1)*params_->MLbase) + V->get_energy_WMp(k,j-2);
+								tmp += emodel_energy_function(i,j,E_MLstem(pair[S_[j]][S_[i]],S_[j-1],S_[i+1],params_) + params_->MLclosing + 2*params_->MLbase,E_MLstem(pair[S_[j]][S_[i]],S_[j-1],S_[i+1],params2_) + params2_->MLclosing + 2*params2_->MLbase);
+							}
+							if (tmp < min)
+							{
+								min = tmp;
+								best_k = k;
+								best_row = 8;
+							}
+						}						
+					  }
+					switch (best_row)
+					  {
+					  case 1:
+						insert_node (i+1, best_k-1, M_WM);
+						insert_node (best_k, j-1, M_WM);
+						break;
+					  case 2:
+						insert_node (i+2, best_k-1, M_WM);
+						insert_node (best_k, j-1, M_WM);
+						break;
+					  case 3:
+		             	// printf("M_WM(%d,%d) branch 3: pushing M_WM(%d,%d) and M_WM(%d,%d) \n", i,j,i+1,best_k-1,best_k,j-2);
+						insert_node (i+1, best_k-1, M_WM);
+						insert_node (best_k, j-2, M_WM);
+						break;
+					  case 4:
+		             	// printf("M_WM(%d,%d) branch 4: pushing M_WM(%d,%d) and M_WM(%d,%d) \n", i,j,i+2,best_k,best_k+1,j-2);
+						insert_node (i+2, best_k-1, M_WM);
+						insert_node (best_k, j-2, M_WM);
+						break;
+					  case 5:
+						insert_node (best_k, j-1, M_WM);
+						break;
+					  case 6:
+						insert_node (best_k, j-1, M_WM);
+						break;
+					  case 7:
+						insert_node (best_k, j-2, M_WM);
+						break;
+					  case 8:
+						insert_node (best_k, j-2, M_WM);
+						break;
+					  }
+				}
+					break;
+			}
+		}
+			break;
+		case FREE:
+		{
+			int j = cur_interval->j;
+
+			if (j==1) return;
+
+			int min = INF, tmp, best_row, i, best_i, acc, energy_ij;
+
+			// this case is for j unpaired, so I have to check that.
+			if (tree.tree[j].pair <= -1)
+			{
+				tmp = W[j-1];
+				if (tmp < min)
+				{
+					min = tmp;
+					best_row = 0;
+				}
+			}
+			for (i=1; i<=j-1; i++)    // no TURN
+			{
+				if (seq_[i] == 'X' || seq_[j] == 'X') continue;
+				// Don't need to make sure i and j don't have to pair with something else
+				//  it's INF, done in fold_sequence_restricted
+				acc = (i>1) ? W[i-1] : 0;
+				energy_ij = V->get_energy(i,j);
+
+				if (energy_ij < INF)
+				{	
+					if(params_->model_details.dangles == 2){
+						base_type si1 = i>1 ? S_[i-1] : -1;
+						base_type sj1 = j<n ? S_[j+1] : -1;
+						tmp = energy_ij + emodel_energy_function(i,j,E_ExtLoop(pair[S_[i]][S_[j]],si1,sj1,params_),E_ExtLoop(pair[S_[i]][S_[j]],si1,sj1,params2_)) + acc;
+					} else 
+						tmp = energy_ij + emodel_energy_function(i,j,E_ExtLoop(pair[S_[i]][S_[j]],-1,-1,params_),E_ExtLoop(pair[S_[i]][S_[j]],-1,-1,params2_)) + acc; 
+					if (tmp < min)
+					{
+					min = tmp;
+					best_i = i;
+					best_row = 1;
+					}
+					
+				}
+				if(params_->model_details.dangles ==1){
+					if (tree.tree[i].pair <= -1)
+					{
+						energy_ij = V->get_energy(i+1,j);
+						if (energy_ij < INF)
+						{
+							tmp = energy_ij + emodel_energy_function(i,j,E_ExtLoop(pair[S_[i+1]][S_[j]],S_[i],-1,params_),E_ExtLoop(pair[S_[i+1]][S_[j]],S_[i],-1,params2_)) + acc;
+							
+							if (tmp < min)
+							{
+								min = tmp;
+								best_i = i;
+								best_row = 2;
+							}
+							
+						}
+					}
+					if (tree.tree[j].pair <= -1)
+					{
+						energy_ij = V->get_energy(i,j-1);
+						if (energy_ij < INF)
+						{
+							tmp = energy_ij + emodel_energy_function(i,j,E_ExtLoop(pair[S_[i]][S_[j-1]],-1,S_[j],params_),E_ExtLoop(pair[S_[i]][S_[j-1]],-1,S_[j],params2_)) + acc;
+							if (tmp < min)
+							{
+								min = tmp;
+								best_i = i;
+								best_row = 3;
+							}
+						}
+					}
+					if (tree.tree[i].pair <= -1 && tree.tree[j].pair <= -1)
+					{
+						energy_ij = V->get_energy(i+1,j-1);
+						if (energy_ij < INF)
+						{
+							tmp = energy_ij + emodel_energy_function(i,j,E_ExtLoop(pair[S_[i+1]][S_[j-1]],S_[i],S_[j],params_),E_ExtLoop(pair[S_[i+1]][S_[j-1]],S_[i],S_[j],params2_)) + acc;
+							if (tmp < min)
+							{
+								min = tmp;
+								best_i = i;
+								best_row = 4;
+							}
+						}
+					}
+				}
+			}
+		// Hosna June 30, 2007
+		// The following would not take care of when
+		// we have some unpaired bases before the start of the WMB
+		for (i=1; i<=j-1; i++)
+		{
+			// Hosna: July 9, 2007
+			// We only chop W to W + WMB when the bases before WMB are free
+			if (i == 1 || (tree.weakly_closed(1,i-1) && tree.weakly_closed(i,j))){
+
+				acc = (i-1>0) ? W[i-1]: 0;
+
+				energy_ij = WMB->get_WMB(i,j);
+
+				if (energy_ij < INF)
+				{
+					tmp = energy_ij + PS_penalty + acc;
+
+					if (tmp < min)
+					{
+						min = tmp;
+						best_row = 5;
+						best_i = i;
+					}
+				}
+
+				if (tree.tree[i].pair <= -1 && i+1 < j)
+				{
+					energy_ij = WMB->get_WMB(i+1,j);
+					if (energy_ij < INF)
+					{
+						tmp = energy_ij + PS_penalty + acc;
+						if (tmp < min)
+						{
+							min = tmp;
+							best_row = 6;
+							best_i = i;
+						}
+					}
+				}
+
+				if (tree.tree[j].pair <= -1 && i < j-1)
+				{
+					energy_ij = WMB->get_WMB(i,j-1);
+					if (energy_ij < INF)
+					{
+						tmp = energy_ij + PS_penalty + acc;
+						if (tmp < min)
+						{
+							min = tmp;
+							best_row = 7;
+							best_i = i;
+						}
+					}
+				}
+
+				if (tree.tree[i].pair <= -1 && tree.tree[j].pair <= -1 && i+1 < j-1)
+				{
+					energy_ij = WMB->get_WMB(i+1,j-1);
+					if (energy_ij < INF)
+					{
+						tmp = energy_ij + PS_penalty + acc;
+						if (tmp < min)
+						{
+							min = tmp;
+							best_row = 8;
+							best_i = i;
+						}
+					}
+				}
+			}
+		}
+			switch (best_row)
+			{
+				case 0:
+					//printf("W(%d) case 0: inserting Free (0,%d)\n",j,j-1);
+					insert_node (1, j-1, FREE); break;
+				case 1:
+					//printf("W(%d) case 1: inserting Loop(%d,%d) and Free (0,%d)\n",j,best_i,j,best_i-1);
+					insert_node (best_i, j, LOOP);
+					if (best_i-1 > 1)     // it was TURN instead of 0  - not sure if TURN shouldn't be here
+						insert_node (1, best_i-1, FREE);
+					break;
+				case 2:
+					//printf("W(%d) case 2: inserting Loop(%d,%d) and Free (0,%d)\n",j,best_i+1,j,best_i);
+					insert_node (best_i+1, j, LOOP);
+					if (best_i >= 1)// Hosna, March 26, 2012, was best_i-1 instead of best_i
+						insert_node (1, best_i, FREE);
+					break;
+				case 3:
+					//printf("W(%d) case 3: inserting Loop(%d,%d) and Free (0,%d)\n",j,best_i,j-1,best_i-1);
+					insert_node (best_i, j-1, LOOP);
+					if (best_i-1 > 1)
+						insert_node (1, best_i-1, FREE);
+					break;
+				case 4:
+					//printf("W(%d) case 4: inserting Loop(%d,%d) and Free (0,%d)\n",j,best_i+1,j-1,best_i);
+					insert_node (best_i+1, j-1, LOOP);
+					if (best_i >= 1) // Hosna, March 26, 2012, was best_i-1 instead of best_i
+						insert_node (1, best_i, FREE);
+					break;
+				// Hosna: June 28, 2007
+				// the last branch of W, which is WMB_i,j
+				case 5:
+					//printf("W(%d) case 5: inserting WMB(%d,%d) and Free (0,%d)\n",j,best_i,j,best_i-1);
+					insert_node (best_i, j, P_WMB);
+					if (best_i-1 > 1)     // it was TURN instead of 0  - not sure if TURN shouldn't be here
+						insert_node (1, best_i-1, FREE);
+					break;
+				case 6:
+					//printf("W(%d) case 6: inserting WMB(%d,%d) and Free (0,%d)\n",j,best_i+1,j,best_i);
+					insert_node (best_i+1, j, P_WMB);
+					if (best_i >= 1) // Hosna, March 26, 2012, was best_i-1 instead of best_i
+						insert_node (1, best_i, FREE);
+					break;
+				case 7:
+					//printf("W(%d) case 7: inserting WMB(%d,%d) and Free (0,%d)\n",j,best_i,j-1,best_i-1);
+					insert_node (best_i, j-1, P_WMB);
+					if (best_i-1 > 1)
+						insert_node (1, best_i-1, FREE);
+					break;
+				case 8:
+					//printf("W(%d) case 8: inserting WMB(%d,%d) and Free (0,%d)\n",j,best_i+1,j-1,best_i);
+					insert_node (best_i+1, j-1, P_WMB);
+					if (best_i >= 1) // Hosna, March 26, 2012, was best_i-1 instead of best_i
+						insert_node (1, best_i, FREE);
+					break;
+			}
+		}
+			break;
+		case M_WM:
+		{
+			cand_pos_t i = cur_interval->i;
+			cand_pos_t j = cur_interval->j;
+			energy_t min = INF;
+			cand_pos_t best_k = j, best_row;
+			  
+			for (cand_pos_t k=i; k <= j-TURN-1; k++){	
+				energy_t m1 = INF,m2 = INF;
+					// energy_t wm_kj = V->E_MLStem(V->get_energy(k,j),V->get_energy(k+1,j),V->get_energy(k,j-1),V->get_energy(k+1,j-1),S_,params_,k,j,n,tree.tree);
+				bool can_pair = tree.up[k-1] >= (k-(i));
+				if(can_pair) m1 = emodel_energy_function(i,j,static_cast<energy_t>((k-i)*params_->MLbase) + V->get_energy_WMv (k, j),static_cast<energy_t>((k-i)*params2_->MLbase) + V->get_energy_WMv (k, j));
+				if (m1 < min){
+					min = m1;
+					best_k = k;
+					best_row = 1;
+				}
+				if(can_pair) m2 = emodel_energy_function(i,j,static_cast<energy_t>((k-i)*params_->MLbase) + V->get_energy_WMp(k, j),static_cast<energy_t>((k-i)*params2_->MLbase) + V->get_energy_WMp(k, j));
+				if (m2 < min){
+					min = m2;
+					best_k = k;
+					best_row = 2;
+				}
+				energy_t m3 = V->get_energy_WM (i, k-1) + V->get_energy_WMv (k, j);
+				if (m3 < min){
+					min = m3;
+					best_k = k;
+					best_row = 3;
+				}
+				energy_t m4 = V->get_energy_WM (i, k-1) + V->get_energy_WMp(k, j);
+				if (m4 < min){
+					min = m4;
+					best_k = k;
+					best_row = 4;
+				}
+			}
+			if(tree.tree[j].pair<0){
+				if(V->get_energy_WM(i,j-1)< min){
+					min = V->get_energy_WM(i,j-1);
+					best_row = 5;
+				}
+			}
+			if(seq_[j] == 'X'){
+				best_row = 5;
+			}
+			  
+			switch (best_row){
+				case 1: insert_node (best_k, j, M_WMv); break;
+				case 2: insert_node (best_k, j, M_WMp); break;
+				case 3:
+					insert_node (i, best_k-1, M_WM);
+					insert_node (best_k, j, M_WMv);
+				break;
+				case 4:
+					insert_node (i, best_k-1, M_WM);
+					insert_node (best_k+1, j, M_WMp);
+				break;
+				case 5:
+					insert_node (i,j-1,M_WM); break;
+			}
+		}
+			break;
+		case M_WMv:
+		{
+			cand_pos_t i = cur_interval->i;
+			cand_pos_t j = cur_interval->j;
+			energy_t min = INF;
+			cand_pos_t best_row;
+			cand_pos_t si = S_[i];
+			cand_pos_t sj = S_[j];
+			cand_pos_t si1 = (i>1) ? S_[i-1] : -1;
+			cand_pos_t sj1 = (j<n) ? S_[j+1] : -1;
+			pair_type tt = pair[S_[i]][S_[j]];
+
+			min = V->get_energy(i,j);
+			min += ((params_->model_details.dangles == 2) ? emodel_energy_function(i,j,E_MLstem(tt,si1,sj1,params_),E_MLstem(tt,si1,sj1,params2_)) : emodel_energy_function(i,j,E_MLstem(tt,-1,-1,params_),E_MLstem(tt,-1,-1,params2_)));
+
+			best_row = 1;
+			if(params_->model_details.dangles == 1){
+				if(tree.tree[i].pair<0){
+					tt = pair[S_[i+1]][S_[j]];
+					energy_t tmp = V->get_energy(i+1,j) + emodel_energy_function(i,j,E_MLstem(tt,si,-1,params_),E_MLstem(tt,si,-1,params2_));
+					if(tmp<min){
+						min = tmp;
+						best_row = 2;
+					}
+				}
+				if(tree.tree[j].pair<0){
+					tt = pair[S_[i]][S_[j-1]];
+					energy_t tmp = V->get_energy(i,j-1) + emodel_energy_function(i,j,E_MLstem(tt,-1,sj,params_),E_MLstem(tt,-1,sj,params2_));
+					if(tmp<min){
+						min = tmp;
+						best_row = 3;
+					}
+				}
+				if(tree.tree[i].pair<0 && tree.tree[j].pair<0){
+					tt = pair[S_[i+1]][S_[j-1]];
+					energy_t tmp = V->get_energy(i+1,j-1) + emodel_energy_function(i,j,E_MLstem(tt,si,sj,params_),E_MLstem(tt,si,sj,params2_));
+					if(tmp<min){
+						min = tmp;
+						best_row = 4;
+					}
+				}
+			}
+			if(tree.tree[j].pair<0){
+				if(V->get_energy_WMv(i,j-1)< min){
+					min = V->get_energy_WMv(i,j-1);
+					best_row = 5;
+				}
+			}
+			if(seq_[j] == 'X'){
+				best_row = 5;
+			}
+			switch (best_row){
+				case 1: insert_node (i, j, LOOP); break;
+				case 2: insert_node (i+1, j, LOOP); break;
+				case 3: insert_node (i, j-1, LOOP); break;
+				case 4: insert_node (i+1, j-1, LOOP); break;
+				case 5: insert_node (i, j-1, M_WMv); break;
+			}
+		}
+		break;
+		case M_WMp:
+		{
+			int i = cur_interval->i;
+			int j = cur_interval->j;
+			int min = INF;
+			int best_row;
+
+			min = WMB->get_WMB(i,j) + PSM_penalty + b_penalty;
+			best_row = 1;
+			if(tree.tree[j].pair<0){
+				if(V->get_energy_WMp(i,j-1)< min){
+					min = V->get_energy_WMp(i,j-1);
+					best_row = 2;
+				}
+			}
+			if(seq_[j] == 'X'){
+				best_row = 2;
 			}
 			switch (best_row){
 				case 1: insert_node (i, j, P_WMB); break;

@@ -147,7 +147,7 @@ int main (int argc, char *argv[]) {
 
 	start_hybrid_penalty = args_info.pen_given ? hybrid_pen : get_START_HYBRID_PENALTY(model_1_Type,model_2_Type);
 
-	linker_pos = inputSequence1.length();
+	linker_pos = inputSequence1.length()+1;
 
 	//                                                   Energy Model Portion 
 //-----------------------------------------------------------------------------------------------------------

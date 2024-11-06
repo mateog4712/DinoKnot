@@ -294,6 +294,23 @@ void s_energy_matrix::compute_WMv_WMp(cand_pos_t i, cand_pos_t j, energy_t WMB, 
 	}
 }
 
+void s_energy_matrix::compute_WMv_WMp_emodel(cand_pos_t i, cand_pos_t j, energy_t WMB, std::vector<Node> &tree){
+	if(j-i+1<4) return;
+	cand_pos_t ij = index[(i)]+(j)-(i);
+	cand_pos_t iplus1j = index[(i)+1]+(j)-(i)-1;
+	cand_pos_t ijminus1 = index[(i)]+(j)-1-(i);
+
+	WMv[ij] = E_MLStem(get_energy(i,j),get_energy(i+1,j),get_energy(i,j-1),get_energy(i+1,j-1),S_,params_,i,j,n,tree);
+	WMp[ij] = WMB+PSM_penalty+b_penalty;
+	if (tree[j].pair <= -1)
+	{
+		energy_t tmp = WMv[ijminus1] + params_->MLbase;
+		WMv[ij] = std::min(WMv[ij],tmp);
+		tmp = WMp[ijminus1] + params_->MLbase;
+		WMp[ij] = std::min(WMp[ij],tmp);
+	}
+}
+
 void s_energy_matrix::compute_energy_WM_restricted (cand_pos_t i, cand_pos_t j, sparse_tree &tree)
 // compute de MFE of a partial multi-loop closed at (i,j), the restricted case
 {
@@ -305,18 +322,51 @@ void s_energy_matrix::compute_energy_WM_restricted (cand_pos_t i, cand_pos_t j, 
 
 	for (cand_pos_t k=i; k < j -TURN-1; k++)
 	{
+		if (seq_[k] == 'X') continue;
 		bool can_pair = tree.up[k-1] >= (k-i);
-		energy_t wm_kj = E_MLStem(get_energy(k,j),get_energy(k+1,j),get_energy(k,j-1),get_energy(k+1,j-1),S_,params_,k,j,n,tree.tree);
+		energy_t wm_kj = emodel_energy_function(i,j,E_MLStem(get_energy(k,j),get_energy(k+1,j),get_energy(k,j-1),get_energy(k+1,j-1),S_,params_,k,j,n,tree.tree),E_MLStem(get_energy(k,j),get_energy(k+1,j),get_energy(k,j-1),get_energy(k+1,j-1),S_,params2_,k,j,n,tree.tree));
 		cand_pos_t ik = index[(i)]+(k)-(i);
 		cand_pos_t kplus1j = index[(k)+1]+(j)-(k)-1;
-		if(can_pair) m1 = std::min(m1,static_cast<energy_t>((k-i)*params_->MLbase) + wm_kj);
-		if(can_pair) m2 = std::min(m2,static_cast<energy_t>((k-i)*params_->MLbase) + get_energy_WMp(k,j));
+		if(can_pair) m1 = std::min(m1,emodel_energy_function(i,j,static_cast<energy_t>((k-i)*params_->MLbase),static_cast<energy_t>((k-i)*params2_->MLbase)) + wm_kj);
+		if(can_pair) m2 = std::min(m2,emodel_energy_function(i,j,static_cast<energy_t>((k-i)*params_->MLbase),static_cast<energy_t>((k-i)*params_->MLbase)) + get_energy_WMp(k,j));
 		m3 =  std::min(m3,get_energy_WM(i,k-1) + wm_kj);
 		m4 =  std::min(m4,get_energy_WM(i,k-1) + get_energy_WMp(k,j));
 
 	}
 	WM[ij] = std::min({m1,m2,m3,m4});
 	if (tree.tree[j].pair <= -1) WM[ij] = std::min(WM[ij],WM[ijminus1] + params_->MLbase);
+    
+}
+
+void s_energy_matrix::compute_energy_WM_restricted_emodel (cand_pos_t i, cand_pos_t j, sparse_tree &tree)
+// compute de MFE of a partial multi-loop closed at (i,j), the restricted case
+{
+    if(j-i+1<4) return;
+	energy_t m1 = INF,m2=INF,m3=INF,m4=INF,m5=INF;
+    // ++j;
+	cand_pos_t ij = index[(i)]+(j)-(i);
+	cand_pos_t ijminus1 = index[(i)]+(j)-1-(i);
+	
+	if(seq_[i] == 'X' || seq_[j] == 'X'){
+		WM[ij] = INF;
+		return;
+	}
+
+	for (cand_pos_t k=i; k < j -TURN-1; k++)
+	{
+		if (seq_[k] == 'X') continue;
+		bool can_pair = tree.up[k-1] >= (k-i);
+		energy_t wm_kj = emodel_energy_function(i,j,E_MLStem(get_energy(k,j),get_energy(k+1,j),get_energy(k,j-1),get_energy(k+1,j-1),S_,params_,k,j,n,tree.tree),E_MLStem(get_energy(k,j),get_energy(k+1,j),get_energy(k,j-1),get_energy(k+1,j-1),S_,params2_,k,j,n,tree.tree));
+		cand_pos_t ik = index[(i)]+(k)-(i);
+		cand_pos_t kplus1j = index[(k)+1]+(j)-(k)-1;
+		if(can_pair) m1 = std::min(m1,emodel_energy_function(i,j,static_cast<energy_t>((k-i)*params_->MLbase),static_cast<energy_t>((k-i)*params2_->MLbase)) + wm_kj);
+		if(can_pair) m2 = std::min(m2,emodel_energy_function(i,j,static_cast<energy_t>((k-i)*params_->MLbase),static_cast<energy_t>((k-i)*params2_->MLbase)) + get_energy_WMp(k,j));
+		m3 =  std::min(m3,get_energy_WM(i,k-1) + wm_kj);
+		m4 =  std::min(m4,get_energy_WM(i,k-1) + get_energy_WMp(k,j));
+
+	}
+	WM[ij] = std::min({m1,m2,m3,m4});
+	if (tree.tree[j].pair <= -1) WM[ij] = std::min(WM[ij],WM[ijminus1] + emodel_energy_function(i,j,params_->MLbase,params2_->MLbase));
     
 }
 
@@ -351,6 +401,52 @@ energy_t s_energy_matrix::compute_energy_VM_restricted (cand_pos_t i, cand_pos_t
     return min;
 }
 
+energy_t s_energy_matrix::compute_energy_VM_restricted_emodel (cand_pos_t i, cand_pos_t j, sparse_tree &tree, paramT* params)
+// compute the MFE of a multi-loop closed at (i,j), the restricted case
+{
+    energy_t min = INF;
+
+	// Ian Wark and Kevin July 20 2017
+    // if i or j is linker (X), cannot be anything
+    // Uses i+1 or j-1, so those also cannot be X
+    if (seq_[i] == 'X' || seq_[j] == 'X') return min;
+    
+
+    //14 Aug Kevin and Mahyar
+    //handles i+1 and j-1 are both X, so we have to force haipin to be picked ---- check these both later
+    //also prevents i and j to cross each other
+    if(seq_[i+1] == 'X' && seq_[j-1] == 'X') return min;
+        
+       
+	// i--;
+	// j--;
+    for (cand_pos_t k = i+1; k <= j-3; ++k)
+    {	
+		//make sure the splitting point k for WM is not an X, so the X will be handled in either WM[i+1,k-1] or WM[k,j-1]
+		if(seq_[k] == 'X') continue;
+
+    	energy_t WM2ij = get_energy_WM(i+1,k-1) + get_energy_WMv(k,j-1);
+		WM2ij = std::min(WM2ij,get_energy_WM(i+1,k-1) + get_energy_WMp(k,j-1));
+		if(tree.up[k-1] >= (k-(i+1)))WM2ij = std::min(WM2ij,static_cast<energy_t>((k-i-1)*params->MLbase) + get_energy_WMp(k,j-1));
+
+        energy_t WM2ip1j = get_energy_WM(i+2,k-1) + get_energy_WMv(k-1,j-1-1);
+		WM2ip1j = std::min(WM2ip1j,get_energy_WM(i+2,k-1) + get_energy_WMp(k-1,j-1-1));
+		if(tree.up[k-1] >= (k-(i+1))) WM2ip1j = std::min(WM2ip1j,static_cast<energy_t>((k-(i+1)-1)*params->MLbase) + get_energy_WMp(k,j-1));
+
+        energy_t WM2ijm1 = get_energy_WM(i+1,k-1) + get_energy_WMv(k,j-2);
+		WM2ijm1 = std::min(WM2ijm1, get_energy_WM(i+1,k-1) + get_energy_WMp(k,j-2));
+		if(tree.up[k-1] >= (k-(i+2))) WM2ijm1 = std::min(WM2ijm1,static_cast<energy_t>((k-i-1)*params->MLbase) + get_energy_WMp(k,j-2));
+
+        energy_t WM2ip1jm1 = get_energy_WM(i+2,k-1) + get_energy_WMv(k,j-2);
+		WM2ip1jm1 = std::min(WM2ip1jm1,get_energy_WM(i+2,k-1) + get_energy_WMp(k,j-2));
+		if(tree.up[k-2] >= (k-(i+2))) WM2ip1jm1 = std::min(WM2ip1jm1,static_cast<energy_t>((k-(i+1)-1)*params->MLbase) + get_energy_WMp(k,j-2));
+
+        min = std::min(min,E_MbLoop(WM2ij,WM2ip1j,WM2ijm1,WM2ip1jm1,S_,params,i,j,tree.tree));
+		
+    }
+    return min;
+}
+
 
 /**
  * @brief This code returns the hairpin energy for a given base pair.
@@ -362,6 +458,22 @@ energy_t s_energy_matrix::HairpinE(const std::string& seq, const short* S, const
 	const int ptype_closing = pair[S[i]][S[j]];
 
 	if (ptype_closing==0) return INF;
+
+	return E_Hairpin(j-i-1,ptype_closing,S1[i+1],S1[j-1],&seq.c_str()[i-1], const_cast<paramT *>(params));
+}
+
+/**
+ * @brief This code returns the hairpin energy for a given base pair.
+ * @param i The left index in the base pair
+ * @param j The right index in the base pair
+*/
+energy_t s_energy_matrix::HairpinE_emodel(const std::string& seq, const short* S, const short* S1,  const paramT* params, cand_pos_t i, cand_pos_t j) {
+	
+	const int ptype_closing = pair[S[i]][S[j]];
+
+	if (ptype_closing==0) return INF;
+
+	if ((linker_pos != 0) && (i < linker_pos) && (j > linker_pos+linker_length-1)) return 0;
 
 	return E_Hairpin(j-i-1,ptype_closing,S1[i+1],S1[j-1],&seq.c_str()[i-1], const_cast<paramT *>(params));
 }
@@ -380,6 +492,36 @@ energy_t s_energy_matrix::compute_internal_restricted(cand_pos_t i, cand_pos_t j
             for (int l=j-1; l>=min_l; --l) {
                 if(up[j-1]>=(j-l-1)){
                     energy_t v_iloop_kl = E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S_[k]][S_[l]]],S1_[i+1],S1_[j-1],S1_[k-1],S1_[l+1],const_cast<paramT *>(params)) + get_energy(k,l);
+                    v_iloop = std::min(v_iloop,v_iloop_kl);
+                }
+            }
+        }
+	}
+	return v_iloop;
+}
+
+/**
+ * @brief restricted version
+*/
+energy_t s_energy_matrix::compute_internal_restricted_emodel(cand_pos_t i, cand_pos_t j, const paramT *params, std::vector<int> &up){
+	int skip = 0;
+    
+    if(is_cross_model(i,j)){
+        skip = linker_length;  
+    }
+
+	energy_t v_iloop = INF;
+	cand_pos_t max_k = std::min(j-TURN-2,i+MAXLOOP+skip+1);
+	const int ptype_closing = pair[S_[i]][S_[j]];
+	for ( cand_pos_t k=i+1; k<=max_k; ++k) {
+		
+		cand_pos_t min_l=std::max(k+TURN+1 + MAXLOOP+2, k+j-i-skip) - MAXLOOP-2;
+        if((up[k-1]>=(k-i-1))){
+            for (int l=j-1; l>=min_l; --l) {
+                if(up[j-1]>=(j-l-1)){
+                    energy_t v_iloop_kl = E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S_[k]][S_[l]]],S1_[i+1],S1_[j-1],S1_[k-1],S1_[l+1],const_cast<paramT *>(params)) + get_energy(k,l);
+					// If ij cross molecule but ip,jp does not cross
+					if( is_cross_model(i,j) && !(is_cross_model(k,l)))  v_iloop_kl += start_hybrid_penalty;              
                     v_iloop = std::min(v_iloop,v_iloop_kl);
                 }
             }
@@ -473,10 +615,10 @@ void s_energy_matrix::compute_energy_restricted_emodel (cand_pos_t i, cand_pos_t
     {
         bool canH = !(tree.up[j-1]<(j-i-1));
         if(canH) {
-			energy_t en = emodel_energy_function(i,j,HairpinE(seq_,S_,S1_,params_,i,j),HairpinE(seq_,S_,S1_,params2_,i,j));
-
+			energy_t en = emodel_energy_function(i,j,HairpinE_emodel(seq_,S_,S1_,params_,i,j),HairpinE_emodel(seq_,S_,S1_,params2_,i,j));
+			
 			if( is_cross_model(i,j) ) {    // If cross model 
-                   min_en[0] += start_hybrid_penalty;  
+                   en += start_hybrid_penalty;  
 			}
 			min_en[0] = en;
 		}
@@ -484,9 +626,8 @@ void s_energy_matrix::compute_energy_restricted_emodel (cand_pos_t i, cand_pos_t
 		min_en[1] = en;
 
 		// No params here which means the values were computed elsewhere so I don't do the emodel calc here
-        min_en[2] = compute_energy_VM_restricted(i,j,tree);
+        min_en[2] = emodel_energy_function(i,j,compute_energy_VM_restricted_emodel(i,j,tree,params_),compute_energy_VM_restricted_emodel(i,j,tree,params2_));
     }
-
     for (k=0; k<3; k++)
     {
         if (min_en[k] < min)

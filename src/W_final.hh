@@ -80,6 +80,7 @@ class W_final{
         double fold_sequence_restricted ();
 
         void backtrack_restricted (seq_interval *cur_interval, sparse_tree &tree);
+        void backtrack_restricted_emodel (seq_interval *cur_interval, sparse_tree &tree);
         // backtrack, the restricted case
 
         energy_t E_ext_Stem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij1,const energy_t& vi1j1,const short* S, paramT* params, const cand_pos_t i,const cand_pos_t j, cand_pos_t n, std::vector<Node> &tree);

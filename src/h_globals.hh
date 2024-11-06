@@ -27,5 +27,6 @@ int cp_penalty = 12; //0;			//penalty for unpaired base in a multiloop that span
 // Hosna November 16, 2015
 int start_hybrid_penalty = 310;
 int linker_pos = 0;
+int linker_length = 5;
 
 #endif /*H_GLOBALS_H_*/

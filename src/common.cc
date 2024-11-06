@@ -8,7 +8,7 @@
 //kevin 10 Aug 2017
 //return 1 if i and j goes across linker
 int is_cross_model(cand_pos_t i, cand_pos_t j){
-	if( (linker_pos != 0) && (i < linker_pos) && (j > linker_pos+5-1) ){
+	if( (linker_pos != 0) && (i < linker_pos) && (j > linker_pos+linker_length-1) ){
 		return 1;
 	}
 	return 0;
@@ -18,7 +18,7 @@ int is_cross_model(cand_pos_t i, cand_pos_t j){
 int emodel_energy_function (cand_pos_t i, cand_pos_t j, energy_t e1, energy_t e2){
 
     energy_t energy = INF;
-    int index_of_last_linker_position = linker_pos+5-1;
+    int index_of_last_linker_position = linker_pos+linker_length-1;
 
     //21 Aug 2017 kevin and Mahyar
     //changed to handle the energy calculation if one side of the input is on the linker (if we do'nt we returne INF that overwrites the calculated energy already set in matrix)
