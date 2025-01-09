@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "s_energy_matrix.hh"
+#include "common.hh"
 
 class VM_final;
 class V_final;
@@ -14,11 +15,13 @@ class pseudo_loop{
 public:
 	// constructor
 	pseudo_loop(std::string seq, std::string restricted, s_energy_matrix *V, short *S, short *S1, vrna_param_t *params);
+	pseudo_loop(std::string seq, std::string res, s_energy_matrix *V, short *S, short *S1, vrna_param_t *params, vrna_param_t *params2);
 
 	// destructor
 	~pseudo_loop();
 
     void compute_energies(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
+	void compute_energies_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 
     // energy_t get_energy(cand_pos_t i, cand_pos_t j);
 	// in order to be able to check the border values consistantly
@@ -54,6 +57,7 @@ private:
 	std::string structure;
 	minimum_fold *f;
 	vrna_param_t *params_;
+    vrna_param_t *params2_;
 
 
 	//Hosna
@@ -75,26 +79,35 @@ private:
     void allocate_space();
 
     void compute_WI(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
+	void compute_WI_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	// Hosna: This function is supposed to fill in the WI array
 
 	void compute_VP(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
+	void compute_VP_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	// Hosna: this function is supposed to fill the VP array
 
 	// Computes the non-redundant recurrence from CParty (replaces VPP from original)
 	void compute_VPL(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	void compute_VPR(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 
-	void compute_WMB(cand_pos_t i,cand_pos_t j, sparse_tree &tree);
+	void compute_VPL_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
+	void compute_VPR_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
+	
 	// Hosna: this function is supposed to fill the WMB array
+	void compute_WMB(cand_pos_t i,cand_pos_t j, sparse_tree &tree);
+	void compute_WMB_emodel(cand_pos_t i,cand_pos_t j, sparse_tree &tree);
 
-	// based on discussion with Anne, we changed WMB to case 2 and WMBP(containing the rest of the recurrences)
+	// Fills the WMBP vector
 	void compute_WMBP(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
+	void compute_WMBP_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	// this is the helper recurrence to fill the WMB array
 
 	// Computes the non-redundant recurrence from CParty (replaces WMBP case 2 from original)
 	void compute_WMBW(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
+	void compute_WMBW_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 
 	void compute_WIP(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
+	void compute_WIP_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	// Hosna: this function is supposed to fill the WIP array
 
 	void compute_BE(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos_t jp, sparse_tree &tree);
@@ -103,7 +116,9 @@ private:
 	// Hosna Feb 8th, 2007:
 	// I have to calculate the e_stP in a separate function
 	energy_t get_e_stP(cand_pos_t i, cand_pos_t j);
+	energy_t get_e_stP_emodel(cand_pos_t i, cand_pos_t j, const paramT *params);
 	energy_t get_e_intP(cand_pos_t i,cand_pos_t ip, cand_pos_t jp, cand_pos_t j);
+	energy_t get_e_intP_emodel(cand_pos_t i,cand_pos_t ip, cand_pos_t jp, cand_pos_t j, const paramT *params);
 	energy_t compute_int(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l, const paramT *params);
 
   	// Hosna: Feb 19th 2007

@@ -68,7 +68,7 @@ void W_final::space_allocation(){
 	structure = std::string (n+1,'.');
 
 	// Hosna: June 20th 2007
-    WMB = new pseudo_loop (seq_,res,V,S_,S1_,params_);
+    WMB = new pseudo_loop (seq_,res,V,S_,S1_,params_,params2_);
 
 }
 
@@ -88,7 +88,7 @@ energy_t W_final::hfold_interacting(sparse_tree &tree){
 			if(ptype_closing> 0 && evaluate && !restricted && pkonly)
 			V->compute_energy_restricted_emodel (i,j,tree);
 
-			if(!pk_free) WMB->compute_energies(i,j,tree);
+			if(!pk_free) WMB->compute_energies_emodel(i,j,tree);
 
 
 			V->compute_WMv_WMp_emodel(i,j,WMB->get_WMB(i,j),tree.tree);
