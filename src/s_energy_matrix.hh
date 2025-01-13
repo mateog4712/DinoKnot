@@ -82,6 +82,7 @@ class s_energy_matrix
         energy_t compute_internal_restricted(cand_pos_t i, cand_pos_t j, const paramT *params, std::vector<int> &up);
         energy_t compute_internal_restricted_emodel(cand_pos_t i, cand_pos_t j, const paramT *params, std::vector<int> &up);
         energy_t compute_int(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l, const paramT *params);
+        energy_t compute_int_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l, const paramT *params);
 
         void compute_energy_WM_restricted (cand_pos_t i, cand_pos_t j, sparse_tree &tree);
         void compute_energy_WM_restricted_emodel (cand_pos_t i, cand_pos_t j, sparse_tree &tree);

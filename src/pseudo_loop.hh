@@ -110,15 +110,16 @@ private:
 	void compute_WIP_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	// Hosna: this function is supposed to fill the WIP array
 
-	void compute_BE(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos_t jp, sparse_tree &tree);
 	// Hosna: this function is supposed to fill the BE array
+	void compute_BE(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos_t jp, sparse_tree &tree);
+	void compute_BE_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos_t jp, sparse_tree &tree);
 
 	// Hosna Feb 8th, 2007:
 	// I have to calculate the e_stP in a separate function
 	energy_t get_e_stP(cand_pos_t i, cand_pos_t j);
-	energy_t get_e_stP_emodel(cand_pos_t i, cand_pos_t j, const paramT *params);
+	energy_t get_e_stP_emodel(cand_pos_t i, cand_pos_t j, const paramT *params, const paramT *params2);
 	energy_t get_e_intP(cand_pos_t i,cand_pos_t ip, cand_pos_t jp, cand_pos_t j);
-	energy_t get_e_intP_emodel(cand_pos_t i,cand_pos_t ip, cand_pos_t jp, cand_pos_t j, const paramT *params);
+	energy_t get_e_intP_emodel(cand_pos_t i,cand_pos_t ip, cand_pos_t jp, cand_pos_t j, const paramT *params, const paramT *params2);
 	energy_t compute_int(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l, const paramT *params);
 
   	// Hosna: Feb 19th 2007

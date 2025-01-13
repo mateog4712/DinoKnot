@@ -438,7 +438,7 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
               &(local_args_info.dangles_given), optarg, 0, 0, ARG_NO,0, 0,"dangles", 'd',additional_error))
             goto failure;
 
-            output_dir = optarg;
+            dangle_model = strtod(optarg,NULL);
         
           break;
 

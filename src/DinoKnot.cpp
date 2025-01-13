@@ -256,7 +256,7 @@ int main (int argc, char *argv[]) {
 				std::string restricted = hotspot_list1[i].get_structure() + "xxxxx" + hotspot_list2[j].get_structure();
 				
 				std::string structure = Iterative_HFold_interacting(seq,restricted,final_energy,params1,params2,method_chosen);
-				
+
 				Result result(seq,restricted,hotspot_list1[i].get_energy()+hotspot_list2[i].get_energy(),structure,final_energy,method_chosen);
 				result_list.push_back(result);
 				std::cout << restricted << std::endl;

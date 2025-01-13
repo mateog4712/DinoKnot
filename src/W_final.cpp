@@ -72,72 +72,6 @@ void W_final::space_allocation(){
 
 }
 
-energy_t W_final::hfold_interacting(sparse_tree &tree){
-
-	for (int i = n; i >=1; --i)
-	{	
-		for (int j =i; j<=n; ++j)//for (i=0; i<=j; i++)
-		{
-			const bool evaluate = tree.weakly_closed(i,j);
-			const pair_type ptype_closing = pair[S_[i]][S_[j]];
-			const bool restricted = tree.tree[i].pair == -1 || tree.tree[j].pair == -1;
-			const bool paired = (tree.tree[i].pair == j && tree.tree[j].pair == i);
-
-			const bool pkonly = (!pk_only || paired);
-
-			if(ptype_closing> 0 && evaluate && !restricted && pkonly)
-			V->compute_energy_restricted_emodel (i,j,tree);
-
-			if(!pk_free) WMB->compute_energies_emodel(i,j,tree);
-
-
-			V->compute_WMv_WMp_emodel(i,j,WMB->get_WMB(i,j),tree.tree);
-			V->compute_energy_WM_restricted_emodel(i,j,tree);
-		}
-
-	}
-
-	for (cand_pos_t j= TURN+1; j <= n; j++){
-		energy_t m1 = INF;
-		energy_t m2 = INF;
-		energy_t m3 = INF;
-		if(tree.tree[j].pair < 0) m1 = W[j-1];
-		
-		
-		for (cand_pos_t k=1; k<=j-TURN-1; ++k){
-		 	// m2 = compute_W_br2_restricted (j, fres, must_choose_this_branch);
-			energy_t acc = (k>1) ? W[k-1]: 0;
-			m2 = std::min(m2,acc + E_ext_Stem(V->get_energy(k,j),V->get_energy(k+1,j),V->get_energy(k,j-1),V->get_energy(k+1,j-1),S_,params_,k,j,n,tree.tree));
-			if (k == 1 || (tree.weakly_closed(1,k-1) && tree.weakly_closed(k,j))) m3 = std::min(m3,acc + WMB->get_WMB(k,j) + PS_penalty);
-			}
-		W[j] = std::min({m1,m2,m3});
-	}
-
-    energy_t energy = W[n];
-
-    // backtrack
-    // first add (1,n) on the stack
-    stack_interval = new seq_interval;
-    stack_interval->i = 1;
-    stack_interval->j = n;
-    stack_interval->energy = W[n];
-    stack_interval->type = FREE;
-    stack_interval->next = NULL;
-
-    seq_interval *cur_interval = stack_interval;
-
-    while ( cur_interval != NULL)
-    {
-        stack_interval = stack_interval->next;
-        backtrack_restricted (cur_interval,tree);
-        delete cur_interval;    // this should make up for the new in the insert_node
-        cur_interval = stack_interval;
-    }
-	this->structure = structure.substr(1,n);
-    return energy;
-
-}
-
 energy_t W_final::hfold(sparse_tree &tree){
 
 		for (int i = n; i >=1; --i)
@@ -168,17 +102,86 @@ energy_t W_final::hfold(sparse_tree &tree){
 		energy_t m2 = INF;
 		energy_t m3 = INF;
 		if(tree.tree[j].pair < 0) m1 = W[j-1];
+
+		
+		for (cand_pos_t k=1; k<=j-TURN-1; ++k){
+			energy_t acc = (k>1) ? W[k-1]: 0;
+			m2 = std::min(m2,acc + E_ext_Stem(V->get_energy(k,j),V->get_energy(k+1,j),V->get_energy(k,j-1),V->get_energy(k+1,j-1),S_,params_,k,j,n,tree.tree));
+			if (k == 1 || (tree.weakly_closed(1,k-1) && tree.weakly_closed(k,j))) m3 = std::min(m3,acc + WMB->get_WMB(k,j) + PS_penalty);
+		}
+		W[j] = std::min({m1,m2,m3});
+	}
+
+    energy_t energy = W[n];
+
+    // backtrack
+    // first add (1,n) on the stack
+    stack_interval = new seq_interval;
+    stack_interval->i = 1;
+    stack_interval->j = n;
+    stack_interval->energy = W[n];
+    stack_interval->type = FREE;
+    stack_interval->next = NULL;
+
+    seq_interval *cur_interval = stack_interval;
+
+    while ( cur_interval != NULL)
+    {
+        stack_interval = stack_interval->next;
+        backtrack_restricted (cur_interval,tree);
+        delete cur_interval;    // this should make up for the new in the insert_node
+        cur_interval = stack_interval;
+    }
+	this->structure = structure.substr(1,n);
+    return energy;
+
+}
+
+energy_t W_final::hfold_interacting(sparse_tree &tree){
+
+	for (int i = n; i >=1; --i)
+	{	
+		for (int j =i; j<=n; ++j)//for (i=0; i<=j; i++)
+		{
+			const bool evaluate = tree.weakly_closed(i,j);
+			const pair_type ptype_closing = pair[S_[i]][S_[j]];
+			const bool restricted = tree.tree[i].pair == -1 || tree.tree[j].pair == -1;
+			const bool paired = (tree.tree[i].pair == j && tree.tree[j].pair == i);
+
+			const bool pkonly = (!pk_only || paired);
+
+			if(ptype_closing> 0 && evaluate && !restricted && pkonly)
+			V->compute_energy_restricted_emodel (i,j,tree);
+
+			if(!pk_free) WMB->compute_energies_emodel(i,j,tree);
+
+
+			V->compute_WMv_WMp_emodel(i,j,WMB->get_WMB(i,j),tree.tree);
+			V->compute_energy_WM_restricted_emodel(i,j,tree);
+			// printf("i is %d and j is %d and v is %d and wmb is %d\n",i,j,V->get_energy(i,j),WMB->get_VP(i,j));
+		}
+
+	}
+	// w
+	for (cand_pos_t j= TURN+1; j <= n; j++){
+		energy_t m1 = INF;
+		energy_t m2 = INF;
+		energy_t m3 = INF;
+		bool can_pair_kj = true;
+		if ((seq_[j-1] == 'X' && seq_[j+1] == 'X') || (seq_[j] == 'X' && seq_[j-1] != 'X')) can_pair_kj = false;
+		if(tree.tree[j].pair < 0) m1 = W[j-1];
 		
 		
 		for (cand_pos_t k=1; k<=j-TURN-1; ++k){
 		 	// m2 = compute_W_br2_restricted (j, fres, must_choose_this_branch);
 			energy_t acc = (k>1) ? W[k-1]: 0;
-			m2 = std::min(m2,acc + E_ext_Stem(V->get_energy(k,j),V->get_energy(k+1,j),V->get_energy(k,j-1),V->get_energy(k+1,j-1),S_,params_,k,j,n,tree.tree));
+			energy_t en1 = E_ext_Stem(V->get_energy(k,j),V->get_energy(k+1,j),V->get_energy(k,j-1),V->get_energy(k+1,j-1),S_,params_,k,j,n,tree.tree);
+			energy_t en2 = E_ext_Stem(V->get_energy(k,j),V->get_energy(k+1,j),V->get_energy(k,j-1),V->get_energy(k+1,j-1),S_,params2_,k,j,n,tree.tree);
+			if(can_pair_kj) m2 = std::min(m2,acc + emodel_energy_function(k,j,en1,en2));
 			if (k == 1 || (tree.weakly_closed(1,k-1) && tree.weakly_closed(k,j))) m3 = std::min(m3,acc + WMB->get_WMB(k,j) + PS_penalty);
 			}
 		W[j] = std::min({m1,m2,m3});
 	}
-
     energy_t energy = W[n];
 
     // backtrack
@@ -238,9 +241,9 @@ energy_t W_final::E_ext_Stem(const energy_t& vij,const energy_t& vi1j,const ener
 				}
 
 	}
-
 	if(params->model_details.dangles  == 1){
         tt  = pair[S[i+1]][S[j]];
+		
         if (((tree[i+1].pair <-1 && tree[j].pair <-1) || (tree[i+1].pair == j)) && tree[i].pair<0) {
             en = (j-i-1>TURN) ? vi1j : INF; //i+1 j
 
@@ -251,7 +254,6 @@ energy_t W_final::E_ext_Stem(const energy_t& vij,const energy_t& vi1j,const ener
             }
 
             e = MIN2(e,en);
-
         }
         tt  = pair[S[i]][S[j-1]];
         if (((tree[i].pair <-1 && tree[j-1].pair <-1) || (tree[i].pair == j-1)) && tree[j].pair<0) {
@@ -908,10 +910,8 @@ void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tre
 					f[j].type = INTER;
 
 					int skip = 0;
-
 					if(is_cross_model(i,j)){
 						skip = linker_length;
-
 					}
 					// detect the other closing pair
 					cand_pos_t best_ip=j, best_jp=i;
@@ -926,7 +926,7 @@ void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tre
 								
 								if(tree.up[j-1]>=(j-l-1)){
 							
-									energy_t tmp = V->compute_int(i,j,k,l,params_);
+									energy_t tmp = emodel_energy_function(i,j,V->compute_int_emodel(i,j,k,l,params_),V->compute_int_emodel(i,j,k,l,params2_));
 									if( is_cross_model(i,j) && !(is_cross_model(k,l))) tmp += start_hybrid_penalty;
 									if (tmp < min)
 									{

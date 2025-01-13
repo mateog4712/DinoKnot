@@ -424,15 +424,13 @@ energy_t s_energy_matrix::compute_energy_VM_restricted_emodel (cand_pos_t i, can
     {	
 		//make sure the splitting point k for WM is not an X, so the X will be handled in either WM[i+1,k-1] or WM[k,j-1]
 		if(seq_[k] == 'X') continue;
-
     	energy_t WM2ij = get_energy_WM(i+1,k-1) + get_energy_WMv(k,j-1);
 		WM2ij = std::min(WM2ij,get_energy_WM(i+1,k-1) + get_energy_WMp(k,j-1));
 		if(tree.up[k-1] >= (k-(i+1)))WM2ij = std::min(WM2ij,static_cast<energy_t>((k-i-1)*params->MLbase) + get_energy_WMp(k,j-1));
 
-        energy_t WM2ip1j = get_energy_WM(i+2,k-1) + get_energy_WMv(k-1,j-1-1);
-		WM2ip1j = std::min(WM2ip1j,get_energy_WM(i+2,k-1) + get_energy_WMp(k-1,j-1-1));
+        energy_t WM2ip1j = get_energy_WM(i+2,k-1) + get_energy_WMv(k,j-1);
+		WM2ip1j = std::min(WM2ip1j,get_energy_WM(i+2,k-1) + get_energy_WMp(k,j-1));
 		if(tree.up[k-1] >= (k-(i+1))) WM2ip1j = std::min(WM2ip1j,static_cast<energy_t>((k-(i+1)-1)*params->MLbase) + get_energy_WMp(k,j-1));
-
         energy_t WM2ijm1 = get_energy_WM(i+1,k-1) + get_energy_WMv(k,j-2);
 		WM2ijm1 = std::min(WM2ijm1, get_energy_WM(i+1,k-1) + get_energy_WMp(k,j-2));
 		if(tree.up[k-1] >= (k-(i+2))) WM2ijm1 = std::min(WM2ijm1,static_cast<energy_t>((k-i-1)*params->MLbase) + get_energy_WMp(k,j-2));
@@ -518,8 +516,12 @@ energy_t s_energy_matrix::compute_internal_restricted_emodel(cand_pos_t i, cand_
 		cand_pos_t min_l=std::max(k+TURN+1 + MAXLOOP+2, k+j-i-skip) - MAXLOOP-2;
         if((up[k-1]>=(k-i-1))){
             for (int l=j-1; l>=min_l; --l) {
+				cand_pos_t skip1 = 0;
+				cand_pos_t skip2 = 0;
+				if(is_cross_model(i,k)) skip1 = linker_length;
+				if(is_cross_model(l,j)) skip2 = linker_length;
                 if(up[j-1]>=(j-l-1)){
-                    energy_t v_iloop_kl = E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S_[k]][S_[l]]],S1_[i+1],S1_[j-1],S1_[k-1],S1_[l+1],const_cast<paramT *>(params)) + get_energy(k,l);
+                    energy_t v_iloop_kl = E_IntLoop(k-i-1-skip1,j-l-1-skip2,ptype_closing,rtype[pair[S_[k]][S_[l]]],S1_[i+1],S1_[j-1],S1_[k-1],S1_[l+1],const_cast<paramT *>(params)) + get_energy(k,l);
 					// If ij cross molecule but ip,jp does not cross
 					if( is_cross_model(i,j) && !(is_cross_model(k,l)))  v_iloop_kl += start_hybrid_penalty;              
                     v_iloop = std::min(v_iloop,v_iloop_kl);
@@ -542,6 +544,16 @@ energy_t s_energy_matrix::compute_int(cand_pos_t i, cand_pos_t j, cand_pos_t k, 
 
 	const int ptype_closing = pair[S_[i]][S_[j]];
     return E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S_[k]][S_[l]]],S1_[i+1],S1_[j-1],S1_[k-1],S1_[l+1],const_cast<paramT *>(params)) + get_energy(k,l);
+}
+
+energy_t s_energy_matrix::compute_int_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l, const paramT *params){
+
+	const int ptype_closing = pair[S_[i]][S_[j]];
+	cand_pos_t skip1 = 0;
+	cand_pos_t skip2 = 0;
+	if(is_cross_model(i,k)) skip1 = linker_length;
+	if(is_cross_model(l,j)) skip2 = linker_length;
+    return E_IntLoop(k-i-1-skip1,j-l-1-skip2,ptype_closing,rtype[pair[S_[k]][S_[l]]],S1_[i+1],S1_[j-1],S1_[k-1],S1_[l+1],const_cast<paramT *>(params)) + get_energy(k,l);
 }
 
 void s_energy_matrix::compute_energy_restricted (cand_pos_t i, cand_pos_t j, sparse_tree &tree)

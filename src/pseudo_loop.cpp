@@ -135,11 +135,13 @@ void pseudo_loop::compute_energies_emodel(cand_pos_t i, cand_pos_t j, sparse_tre
 	}
 
 	if (!((j-i-1) <= TURN || (tree.tree[i].pair >= -1 && tree.tree[i].pair > j) || (tree.tree[j].pair >= -1 && tree.tree[j].pair < i) || (tree.tree[i].pair >= -1 && tree.tree[i].pair < i ) || (tree.tree[j].pair >= -1 && j < tree.tree[j].pair))){
-		compute_WMBW_emodel(i,j,tree);
-		
-		compute_WMBP_emodel(i,j,tree);
+		if (!(seq[i] == 'X' && seq[j] == 'X')){
+			compute_WMBW_emodel(i,j,tree);
+			
+			compute_WMBP_emodel(i,j,tree);
 
-		compute_WMB_emodel(i,j,tree);
+			compute_WMB_emodel(i,j,tree);
+		}
 	}
 
 	if(!weakly_closed_ij){
@@ -153,8 +155,8 @@ void pseudo_loop::compute_energies_emodel(cand_pos_t i, cand_pos_t j, sparse_tre
 
 	cand_pos_t ip = tree.tree[i].pair; // i's pair ip should be right side so ip = )
 	cand_pos_t jp = tree.tree[j].pair; // j's pair jp should be left side so jp = (
-
-	compute_BE(i,ip,jp,j,tree);
+	
+	compute_BE_emodel(i,ip,jp,j,tree);
 
 }
 void pseudo_loop::compute_WI(cand_pos_t i, cand_pos_t j, sparse_tree &tree){
@@ -557,8 +559,7 @@ void pseudo_loop::compute_VP_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tre
 	// 4) NOT_paired(i+1) and NOT_paired(j-1) and they can pair together
 	pair_type ptype_closingip1jm1 = pair[S_[i+1]][S_[j-1]];
 	if((tree.tree[i+1].pair) < -1 && (tree.tree[j-1].pair) < -1 && ptype_closingip1jm1>0){
-		m4 = emodel_energy_function(i,j,get_e_stP_emodel(i,j,params_) + get_VP(i+1,j-1),get_e_stP_emodel(i,j,params2_) + get_VP(i+1,j-1));
-		m4 = get_e_stP(i,j)+ get_VP(i+1,j-1);
+		m4 = get_e_stP_emodel(i,j,params_,params2_) + get_VP(i+1,j-1);
 	}
 
 	// 5) NOT_paired(r) and NOT_paired(rp)
@@ -574,7 +575,7 @@ void pseudo_loop::compute_VP_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tre
 
 				pair_type ptype_closingkj = pair[S_[k]][S_[l]];
 				if (tree.tree[l].pair < -1 && ptype_closingkj>0 && (tree.up[(j)-1] >= ((j)-(l)-1))){
-					energy_t tmp = get_e_intP(i,k,l,j) + get_VP(k,l);
+					energy_t tmp = get_e_intP_emodel(i,k,l,j,params_,params2_) + get_VP(k,l);
 					m5 = std::min(m5,tmp);
 					
 				}
@@ -995,6 +996,109 @@ void pseudo_loop::compute_BE(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos
 	BE[iip] = std::min({m1,m2,m3,m4,m5});
 }
 
+void pseudo_loop::compute_BE_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos_t jp, sparse_tree &tree){
+
+
+    // Ian Wark July 19 2017
+    // otherwise it will create pairs in spots where the restricted structure says there should be no pairs
+	cand_pos_t iip = index[i]+ip-i;
+
+	if (!( i >= 1 && i <= ip && ip < jp && jp <= j && j <= n && tree.tree[i].pair > 0 && tree.tree[j].pair > 0 && tree.tree[ip].pair > 0 && tree.tree[jp].pair > 0 && tree.tree[i].pair == j && tree.tree[j].pair == i && tree.tree[ip].pair == jp && tree.tree[jp].pair == ip)){ //impossible cases
+		return;
+	}
+	if(seq[i] == 'X' || seq[j] == 'X' || seq[ip] == 'X' || seq[jp] == 'X' ){
+		BE[iip] = INF;
+		return;
+	}
+	// base case: i.j and ip.jp must be in G
+	if (tree.tree[i].pair != j || tree.tree[ip].pair != jp){
+		BE[iip] = INF;
+		return;
+	}
+
+	// base case:
+	if(i == ip && j == jp && i<j){
+		BE[iip] = 0;
+		return;
+	}
+
+	energy_t m1 = INF, m2 = INF, m3 = INF, m4 = INF, m5 = INF;
+	// 1) bp(i+1) == j-1
+	if (tree.tree[i+1].pair == j-1){
+		m1 = get_e_stP_emodel(i,j,params_,params2_) + get_BE(i+1,j-1,ip,jp,tree);
+
+	}
+
+	// cases 2-5 are all need an l s.t. i<l<=ip and jp<=bp(l)<j
+	for (cand_pos_t l = i+1; l<= ip ; l++){
+
+		// Hosna: March 14th, 2007
+		if (tree.tree[l].pair >= -1 && jp <= tree.tree[l].pair && tree.tree[l].pair < j){
+			// Hosna, March 15, 2007
+			// since not_paired_all[i,l] includes i and l themselves
+			// and in BE energy calculation we are looking for the oepn region (i,l)
+			// we have to look at not_paired_all[i+1,l-1]
+			cand_pos_t lp = tree.tree[l].pair;
+			cand_pos_t il = index[i]+l-i;
+			cand_pos_t lpj = index[lp]+j-lp;
+			// 2)
+			// Hosna June 29, 2007
+			// when we pass a stacked pair instead of an internal loop to e_int, it returns underflow,
+			// so I am checking explicitely that we won't have stems instead of internal loop
+			bool empty_region_il = (tree.up[(l)-1] >= l-i-1); //empty between i+1 and lp-1
+			bool empty_region_lpj = (tree.up[(j)-1] >= j-lp-1); // empty between l+1 and ip-1
+			bool weakly_closed_il = tree.weakly_closed(i+1,l-1); // weakly closed between i+1 and lp-1
+			bool weakly_closed_lpj = tree.weakly_closed(lp+1,j-1); // weakly closed between l+1 and ip-1
+
+
+			if (empty_region_il && empty_region_lpj){//&& !(ip == (i+1) && jp==(j-1)) && !(l == (i+1) && lp == (j-1))){
+				energy_t tmp = get_e_intP_emodel(i,l,lp,j,params_,params2_)+ get_BE(l,lp,ip,jp,tree);
+				m2 = std::min(m2,tmp);
+			}
+
+			// 3)
+			if (weakly_closed_il && weakly_closed_lpj){
+				// Hosna: July 5th, 2007
+				// After meeting with Anne and Cristina --> ap should have 2* bp to consider the biggest and the one that crosses
+				// in a multiloop that spans a band
+				energy_t tmp = get_WIP(i+1,l-1) + get_BE(l,lp,ip,jp,tree) + get_WIP(lp+1,j-1)+ ap_penalty + 2* bp_penalty;
+				m3 = std::min(m3,tmp);
+			}
+
+			// 4)
+			if (weakly_closed_il && empty_region_lpj){
+				// Why would this cross, it's BE?
+				cand_pos_t skip_X = 0;
+				energy_t temp = 0;
+				if(is_cross_model(lp,j)){
+					skip_X = linker_length;
+					temp = start_hybrid_penalty;
+				}
+
+				energy_t tmp = temp + get_WIP(i+1,l-1) + get_BE(l,lp,ip,jp,tree) + cp_penalty * (j-lp+1-skip_X) + ap_penalty + 2*bp_penalty;
+				m4 = std::min(m4,tmp);
+			}
+
+			// 5)
+			if (empty_region_il && weakly_closed_lpj){
+				// Why would this cross, it's BE?
+				cand_pos_t skip_X = 0;
+				energy_t temp = 0;
+				if(is_cross_model(lp,j)){
+					skip_X = linker_length;
+					temp = start_hybrid_penalty;
+				}
+
+				energy_t tmp = temp + ap_penalty + 2*bp_penalty + (cp_penalty * (l-i+1-skip_X)) + get_BE(l,lp,ip,jp,tree) + get_WIP(lp+1,j-1);
+				m5 = std::min(m5,tmp);
+			}
+		}
+	}
+
+	// finding the min and putting it in BE[iip]
+	BE[iip] = std::min({m1,m2,m3,m4,m5});
+}
+
 energy_t pseudo_loop::get_WI(cand_pos_t i, cand_pos_t j){
 	if (i>j) return 0;
 	cand_pos_t ij = index[i]+j-i;
@@ -1069,12 +1173,14 @@ energy_t pseudo_loop::get_e_stP(cand_pos_t i, cand_pos_t j){
 	return lrint(e_stP_penalty * ss);
 }
 
-energy_t pseudo_loop::get_e_stP_emodel(cand_pos_t i, cand_pos_t j,const paramT *params){
+energy_t pseudo_loop::get_e_stP_emodel(cand_pos_t i, cand_pos_t j,const paramT *params, const paramT *params2){
 	if (i+1 == j-1){ // TODO: do I need something like that or stack is taking care of this?
 		return INF;
 	}
 	energy_t ss = compute_int(i,j,i+1,j-1,params);
-	return lrint(e_stP_penalty * ss);
+	energy_t ss2 = compute_int(i,j,i+1,j-1,params2);
+	energy_t en = emodel_energy_function(i,j,ss,ss2);
+	return lrint(e_stP_penalty * en);
 }
 
 energy_t pseudo_loop::get_e_intP(cand_pos_t i, cand_pos_t ip, cand_pos_t jp, cand_pos_t j){
@@ -1084,6 +1190,21 @@ energy_t pseudo_loop::get_e_intP(cand_pos_t i, cand_pos_t ip, cand_pos_t jp, can
 	// in both cases regions [i,ip] and [jp,j] are closed regions
 	energy_t e_int = compute_int(i,j,ip,jp,params_);
 	energy_t energy = lrint(e_intP_penalty * e_int);
+	return energy;
+}
+
+energy_t pseudo_loop::get_e_intP_emodel(cand_pos_t i, cand_pos_t ip, cand_pos_t jp, cand_pos_t j,const paramT *params, const paramT *params2){
+	// Hosna Feb 12th, 2007:
+	// this function is only being called in branch 5 of VP
+	// and branch 2 of BE
+	// in both cases regions [i,ip] and [jp,j] are closed regions
+	energy_t e_int = compute_int(i,j,ip,jp,params_);
+	energy_t e_int2 = compute_int(i,j,ip,jp,params2_);
+	energy_t en = emodel_energy_function(i,j,e_int,e_int2);
+	energy_t energy = lrint(e_intP_penalty * en);
+	if (is_cross_model(i,ip) || is_cross_model(jp,j)){
+		energy += start_hybrid_penalty;
+	}
 	return energy;
 }
 
