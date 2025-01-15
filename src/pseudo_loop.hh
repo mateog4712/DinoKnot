@@ -121,6 +121,7 @@ private:
 	energy_t get_e_intP(cand_pos_t i,cand_pos_t ip, cand_pos_t jp, cand_pos_t j);
 	energy_t get_e_intP_emodel(cand_pos_t i,cand_pos_t ip, cand_pos_t jp, cand_pos_t j, const paramT *params, const paramT *params2);
 	energy_t compute_int(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l, const paramT *params);
+	energy_t compute_int_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l, const paramT *params);
 
   	// Hosna: Feb 19th 2007
   	// used for backtracking

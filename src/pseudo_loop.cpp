@@ -229,6 +229,7 @@ void pseudo_loop::compute_WI_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tre
 	}
 	
 	for (cand_pos_t k = i+1; k < j-TURN-1; ++k){
+		if (seq[k] == 'X') continue;
 		energy_t wi_1 = get_WI(i,k-1);
 		energy_t v_energy = wi_1 + V->get_energy(k,j);
 		energy_t wmb_energy = wi_1 + get_WMB(k,j);
@@ -1084,7 +1085,7 @@ void pseudo_loop::compute_BE_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t ip, c
 				// Why would this cross, it's BE?
 				cand_pos_t skip_X = 0;
 				energy_t temp = 0;
-				if(is_cross_model(lp,j)){
+				if(is_cross_model(i,l)){
 					skip_X = linker_length;
 					temp = start_hybrid_penalty;
 				}
@@ -1164,6 +1165,15 @@ energy_t pseudo_loop::compute_int(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand
 	const pair_type ptype_closing = pair[S_[i]][S_[j]];
     return E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S_[k]][S_[l]]],S1_[i+1],S1_[j-1],S1_[k-1],S1_[l+1],const_cast<paramT *>(params));
 }
+energy_t pseudo_loop::compute_int_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l, const paramT *params){
+
+	const int ptype_closing = pair[S_[i]][S_[j]];
+	cand_pos_t skip1 = 0;
+	cand_pos_t skip2 = 0;
+	if(is_cross_model(i,k)) skip1 = linker_length;
+	if(is_cross_model(l,j)) skip2 = linker_length;
+    return E_IntLoop(k-i-1-skip1,j-l-1-skip2,ptype_closing,rtype[pair[S_[k]][S_[l]]],S1_[i+1],S1_[j-1],S1_[k-1],S1_[l+1],const_cast<paramT *>(params));
+}
 
 energy_t pseudo_loop::get_e_stP(cand_pos_t i, cand_pos_t j){
 	if (i+1 == j-1){ // TODO: do I need something like that or stack is taking care of this?
@@ -1198,8 +1208,8 @@ energy_t pseudo_loop::get_e_intP_emodel(cand_pos_t i, cand_pos_t ip, cand_pos_t 
 	// this function is only being called in branch 5 of VP
 	// and branch 2 of BE
 	// in both cases regions [i,ip] and [jp,j] are closed regions
-	energy_t e_int = compute_int(i,j,ip,jp,params_);
-	energy_t e_int2 = compute_int(i,j,ip,jp,params2_);
+	energy_t e_int = compute_int_emodel(i,j,ip,jp,params_);
+	energy_t e_int2 = compute_int_emodel(i,j,ip,jp,params2_);
 	energy_t en = emodel_energy_function(i,j,e_int,e_int2);
 	energy_t energy = lrint(e_intP_penalty * en);
 	if (is_cross_model(i,ip) || is_cross_model(jp,j)){
@@ -1230,6 +1240,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 					energy_t acc = INF;
 					cand_pos_t bp_j = tree.tree[j].pair;
 					for (cand_pos_t l = bp_j +1; l < j; l++){
+						if(seq[l] == 'X') continue;
 						// Hosna: April 24, 2007
 						// correct case 2 such that a multi-pseudoknotted
 						// loop would not be treated as case 2
@@ -1284,6 +1295,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 
 				if(tree.tree[j].pair < j){
 					for(cand_pos_t l = i+1; l<j; l++){
+						if(seq[l] == 'X') continue;
 						if (tree.tree[l].pair < 0 && tree.tree[l].parent->index > -1 && tree.tree[j].parent->index > -1 && tree.tree[j].parent->index == tree.tree[l].parent->index){
 							energy_t tmp = get_WMBP(i,l) + get_WI(l+1,j);
 							if(tmp<min){
@@ -1317,6 +1329,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 					cand_pos_t l3 = -1;
 					cand_pos_t b_ij = tree.b(i,j);
 					for (cand_pos_t l = i+1; l<j ; l++)	{
+						if(seq[l] == 'X') continue;
 						cand_pos_t bp_il = tree.bp(i,l);
 						cand_pos_t Bp_lj = tree.Bp(l,j);
 						if(b_ij > 0 && l < b_ij){
@@ -1347,6 +1360,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 					cand_pos_t l3 = -1;
 					cand_pos_t b_ij = tree.b(i,j);
 					for (cand_pos_t l = i+1; l<j ; l++)	{
+						if(seq[l] == 'X') continue;
 						cand_pos_t bp_il = tree.bp(i,l);
 						cand_pos_t Bp_lj = tree.Bp(l,j);
 						if(b_ij>0 && l<b_ij){
@@ -1383,6 +1397,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 					cand_pos_t l1 = -1;
 					energy_t acc = INF;
 					for (cand_pos_t l = i+1; l < j; l++){
+						if(seq[l] == 'X') continue;
 						// Hosna, April 9th, 2007
 						// checking the borders as they may be negative
 						// Hosna: July 5th, 2007:
@@ -1499,7 +1514,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 				//case 4
 				pair_type ptype_closingip1jm1 = pair[S_[i+1]][S_[j-1]];
 				if(tree.tree[i+1].pair < 0 && tree.tree[j-1].pair < 0 && ptype_closingip1jm1 > 0){
-					tmp = get_e_stP(i,j)+ get_VP(i+1,j-1);
+					tmp = get_e_stP_emodel(i,j,params_,params2_)+ get_VP(i+1,j-1);
 					if (tmp < min){
 						min = tmp;
 						best_row = 4;
@@ -1510,6 +1525,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 				cand_pos_t edge_i = std::min(i+MAXLOOP+1,j-TURN-1);
 				min_borders = std::min({min_borders,edge_i});
 				for (cand_pos_t k = i+1; k < min_borders; ++k){
+					if(seq[k] == 'X') continue;
 					// Hosna: April 20, 2007
 					// i and ip and j and jp should be in the same arc
 					// it should also be the case that [i+1,ip-1] && [jp+1,j-1] are empty regions
@@ -1520,11 +1536,12 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 						cand_pos_t edge_j = k+j-i-MAXLOOP-2;
 						max_borders = std::max({max_borders,edge_j});
 						for (cand_pos_t l = j-1; l > max_borders ; --l){
+							if(seq[l] == 'X') continue;
 							pair_type ptype_closingkj = pair[S_[k]][S_[l]];
 							if (tree.tree[l].pair < -1 && ptype_closingkj>0 && (tree.up[(j)-1] >= ((j)-(l)-1))){
 								// Hosna: April 20, 2007
 								// i and ip and j and jp should be in the same arc
-								tmp = get_e_intP(i,k,l,j) + get_VP(k,l);
+								tmp = get_e_intP_emodel(i,k,l,j,params_,params2_) + get_VP(k,l);
 								if (tmp < min){
 									min = tmp;
 									best_row = 5;
@@ -1540,6 +1557,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 				cand_pos_t max_i_bp = std::max(tree.B(i,j),tree.bp(i,j));
 				
 				for (cand_pos_t k = i+1; k < min_Bp_j; ++k){
+					if(seq[k] == 'X') continue;
 					tmp = get_WIP(i+1,k-1) + get_VP(k,j-1) + ap_penalty + 2* bp_penalty;
 					if (tmp < min){
 						min = tmp;
@@ -1550,6 +1568,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 				}
 
 				for (cand_pos_t k = max_i_bp+1; k < j; ++k){
+					if(seq[k] == 'X') continue;
 					tmp = get_VP(i+1,k) + get_WIP(k+1,j-1) + ap_penalty + 2* bp_penalty;
 					if (tmp < min){
 						min = tmp;
@@ -1561,6 +1580,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 
 
 				for (cand_pos_t k = i+1; k < min_Bp_j; ++k){
+					if(seq[k] == 'X') continue;
 					tmp = get_WIP(i+1,k-1) + get_VPR(k,j-1) + ap_penalty + 2* bp_penalty;
 					if (tmp < min){
 						min = tmp;
@@ -1572,6 +1592,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 
 				
 				for (cand_pos_t k = max_i_bp+1; k < j; ++k){
+					if(seq[k] == 'X') continue;
 					tmp = get_VPL(i+1,k) + get_WIP(k+1,j-1) + ap_penalty + 2* bp_penalty;
 					if (tmp < min){
 						min = tmp;
@@ -1666,8 +1687,18 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 
 				cand_pos_t min_Bp_j = std::min((cand_pos_tu) tree.b(i,j), (cand_pos_tu) tree.Bp(i,j));
 				for(cand_pos_t k = i+1; k<min_Bp_j; ++k){
+					if(seq[k] == 'X') continue;
 					bool can_pair = tree.up[k-1] >= (k-i);
-					if(can_pair) tmp = static_cast<energy_t>((k-i)*cp_penalty) + get_VP(k,j);
+					if(can_pair) {
+						cand_pos_t skip_X = 0;
+						energy_t tmp = 0;
+						if(is_cross_model(i,k)){
+							skip_X = linker_length;
+							tmp = start_hybrid_penalty;
+						}
+						tmp = static_cast<energy_t>((k-i-skip_X)*cp_penalty) + get_VP(k,j) + tmp;
+					
+					}
 					if(tmp < min){
 						best_k = k;
 						min = tmp;
@@ -1693,6 +1724,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 				cand_pos_t max_i_bp = std::max(tree.B(i,j),tree.bp(i,j));
 
 				for(cand_pos_t k = max_i_bp+1; k<j; ++k){
+					if(seq[k] == 'X') continue;
 					tmp = get_VP(i,k) + get_WIP(k+1,j);
 					if(tmp < min){
 						best_k = k;
@@ -1702,9 +1734,18 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 				}
 
 				for(cand_pos_t k = max_i_bp+1; k<j; ++k){
+					if(seq[k] == 'X') continue;
 					energy_t VP_energy = get_VP(i,k);
 					bool can_pair = tree.up[j-1] >= (j-k);
-					if(can_pair) tmp = VP_energy + static_cast<energy_t>((j-k)*cp_penalty);
+					if(can_pair) {
+						cand_pos_t skip_X = 0;
+						energy_t tmp = 0;
+						if(is_cross_model(k,j)){
+							skip_X = linker_length;
+							tmp = start_hybrid_penalty;
+						}
+						tmp = VP_energy + static_cast<energy_t>((j-k-skip_X)*cp_penalty)+tmp;
+					}
 					if(tmp < min){
 						best_k = k;
 						best_row = 2;
@@ -1739,8 +1780,10 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 			if (i >= j){
 				return;
 			}
+			if(seq[i] == 'X' && seq[j] == 'X') return;
+			
 			energy_t min = INF, tmp = INF;
-			cand_pos_t best_row = -1, best_t= -1;
+			cand_pos_t best_row = -1, best_k= -1;
 
 				tmp = V->get_energy(i,j-1) + PPS_penalty;
 				if(tmp<min){
@@ -1754,23 +1797,23 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 					best_row = 2;
 				}
 
-				for (cand_pos_t t = i+1; t< j; t++){
-					energy_t wi_1 = get_WI(i,t-1);
-					energy_t v_energy = wi_1 + V->get_energy(t,j) + PPS_penalty;
+				for (cand_pos_t k = i+1; k< j; k++){
+					energy_t wi_1 = get_WI(i,k-1);
+					energy_t v_energy = wi_1 + V->get_energy(k,j) + PPS_penalty;
 					if(v_energy < min){
 						min = v_energy;
 						best_row = 3;
-						best_t = t;
+						best_k = k;
 					}
 				}
 
-				for (cand_pos_t t = i+1; t< j; t++){
-					energy_t wi_1 = get_WI(i,t-1);
-					energy_t wmb_energy = wi_1 + get_WMB(t,j) + PSP_penalty + PPS_penalty;
+				for (cand_pos_t k = i+1; k< j; k++){
+					energy_t wi_1 = get_WI(i,k-1);
+					energy_t wmb_energy = wi_1 + get_WMB(k,j) + PSP_penalty + PPS_penalty;
 					if(wmb_energy < min){
 						min = wmb_energy;
 						best_row = 4;
-						best_t = t;
+						best_k = k;
 					}
 				}
 				if (tree.tree[j].pair < 0){
@@ -1779,6 +1822,28 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 						min = tmp;
 						best_row = 5;
 					} 
+				}
+				
+				// Could just make this better and have it jump to either side instead of a while loop
+				int new_j = j;
+				if(seq[new_j] == 'X'){
+					new_j--;
+					while(seq[new_j] == 'X'){
+							new_j--;
+					}
+					best_row = 6;
+
+				}
+			
+				//added this to check if i is a X
+				//if it is, move i till it is the last X so the next iteration can handle it properly
+				int new_i = i;
+				if(seq[new_i] == 'X'){
+					new_i++;
+					while(seq[new_i] == 'X'){
+						new_i++;
+					}
+					best_row = 6;
 				} 
 			
 			switch (best_row)
@@ -1795,22 +1860,22 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 					}
 					break;
 				case 3:
-					if (best_t != -1){
-						if (i <= best_t-1){
-							insert_node(i,best_t-1,P_WI);
+					if (best_k != -1){
+						if (i <= best_k-1){
+							insert_node(i,best_k-1,P_WI);
 						}
-						if (best_t < j){
-							insert_node(best_t,j,LOOP);
+						if (best_k < j){
+							insert_node(best_k,j,LOOP);
 						}
 					}
 					break;
 				case 4:
-					if (best_t != -1){
-						if (i <= best_t-1){
-							insert_node(i,best_t-1,P_WI);
+					if (best_k != -1){
+						if (i <= best_k-1){
+							insert_node(i,best_k-1,P_WI);
 						}
-						if (best_t < j){
-							insert_node(best_t,j,P_WMB);
+						if (best_k < j){
+							insert_node(best_k,j,P_WMB);
 						}
 					}
 					break;
@@ -1818,6 +1883,10 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 					if (i < j){
 						insert_node(i,j-1,P_WI);
 					}
+					break;
+				case 6: 
+					// added this case to jump i or j when encounter X
+					insert_node(new_i,new_j,P_WI);
 					break;
 			}
 		}
@@ -1849,7 +1918,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 			cand_pos_t best_row = -1, best_l = INF;
 			//case 1
 			if (tree.tree[i+1].pair == j-1){
-				tmp = get_e_stP(i,j) + get_BE(i+1,j-1,ip,jp,tree);
+				tmp = get_e_stP_emodel(i,j,params_,params2_) + get_BE(i+1,j-1,ip,jp,tree);
 				if(tmp < min){
 					min = tmp;
 					best_row = 1;
@@ -1865,7 +1934,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 				bool weakly_closed_lpj = tree.weakly_closed(lp+1,j-1); // weakly closed between l+1 and ip-1
 
 				if (empty_region_il && empty_region_lpj){
-					tmp = get_e_intP(i,l,lp,j)+ get_BE(l,lp,ip,jp,tree);
+					tmp = get_e_intP_emodel(i,l,lp,j,params_,params2_)+ get_BE(l,lp,ip,jp,tree);
 					if (min > tmp){
 						min = tmp;
 						best_row = 2;
@@ -1888,7 +1957,13 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 					// Hosna: July 5th, 2007
 					// After meeting with Anne and Cristina --> ap should have 2* bp to consider the biggest and the one that crosses
 					// in a multiloop that spans a band
-					tmp = get_WIP(i+1,l-1) + get_BE(l,lp,ip,jp,tree) + c_penalty * (j-lp+1) + ap_penalty + 2* bp_penalty;
+					cand_pos_t skip_X = 0;
+					energy_t temp = 0;
+					if(is_cross_model(lp,j)){
+						skip_X = linker_length;
+						temp = start_hybrid_penalty;
+					}
+					tmp = get_WIP(i+1,l-1) + get_BE(l,lp,ip,jp,tree) + c_penalty * (j-lp+1-skip_X) + ap_penalty + 2*bp_penalty + tmp;
 					if (min > tmp){
 						min = tmp;
 						best_row = 4;
@@ -1901,7 +1976,13 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 					// Hosna: July 5th, 2007
 					// After meeting with Anne and Cristina --> ap should have 2* bp to consider the biggest and the one that crosses
 					// in a multiloop that spans a band
-					tmp = ap_penalty + 2* bp_penalty+ c_penalty * (l-i+1) + get_BE(l,lp,ip,jp,tree) + get_WIP(lp+1,j-1);
+					cand_pos_t skip_X = 0;
+					energy_t temp = 0;
+					if(is_cross_model(i,l)){
+						skip_X = linker_length;
+						temp = start_hybrid_penalty;
+					}
+					tmp = ap_penalty + 2*bp_penalty + c_penalty * (l-i+1-skip_X) + get_BE(l,lp,ip,jp,tree) + get_WIP(lp+1,j-1) + tmp;
 					if (min > tmp){
 						min = tmp;
 						best_row = 5;
@@ -1966,6 +2047,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 			if (i == j){
 				return;
 			}
+			if(seq[i] == 'X' && seq[j] == 'X') return;
 			energy_t min = INF, tmp = INF;
 			cand_pos_t best_row = -1, best_k = INF;
 
@@ -2027,6 +2109,28 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 				}
 			}
 
+			// Could just make this better and have it jump to either side instead of a while loop
+			int new_j = j;
+			if(seq[new_j] == 'X'){
+				new_j--;
+				while(seq[new_j] == 'X'){
+						new_j--;
+				}
+				best_row = 8;
+
+			}
+		
+			//added this to check if i is a X
+			//if it is, move i till it is the last X so the next iteration can handle it properly
+			int new_i = i;
+			if(seq[new_i] == 'X'){
+				new_i++;
+				while(seq[new_i] == 'X'){
+					new_i++;
+				}
+				best_row = 8;
+			} 
+
 			switch(best_row)
 			{
 				case 1:
@@ -2077,6 +2181,9 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 					if (i <= j-1){
 						insert_node(i,j-1,P_WIP);
 					}
+					break;
+				case 8:
+					insert_node(new_i,new_j,P_WIP);
 					break;
 			}
 		}
