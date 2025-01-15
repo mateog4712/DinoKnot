@@ -259,7 +259,7 @@ int main (int argc, char *argv[]) {
 
 				Result result(seq,restricted,hotspot_list1[i].get_energy()+hotspot_list2[i].get_energy(),structure,final_energy,method_chosen);
 				result_list.push_back(result);
-				std::cout << restricted << std::endl;
+				std::cout << restricted << "\n" << std::endl;
 				std::cout << structure << " (" << final_energy << ")" << std::endl;
 			}
 		}
