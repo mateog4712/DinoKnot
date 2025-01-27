@@ -198,7 +198,7 @@ energy_t W_final::hfold_interacting(sparse_tree &tree){
     while ( cur_interval != NULL)
     {
         stack_interval = stack_interval->next;
-        backtrack_restricted (cur_interval,tree);
+        backtrack_restricted_emodel (cur_interval,tree);
         delete cur_interval;    // this should make up for the new in the insert_node
         cur_interval = stack_interval;
     }
@@ -291,7 +291,7 @@ void W_final::backtrack_restricted(seq_interval *cur_interval, sparse_tree &tree
 	// printf("type is %c and i is %d and j is %d\n",cur_interval->type,cur_interval->i,cur_interval->j);
 	//Hosna, March 8, 2012
 	// changing nested if to switch for optimality
-	// printf("At %c at %d and %d\n",cur_interval->type,cur_interval->i,cur_interval->j);
+	printf("At %c at %d and %d\n",cur_interval->type,cur_interval->i,cur_interval->j);
 	switch (cur_interval->type){
 		case LOOP:
 		{
@@ -918,7 +918,7 @@ void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tre
 			structure[j] = ')';		
 
 			type = V->get_type (i,j);
-			
+			// printf("At %d at %d and %c\n",cur_interval->i,cur_interval->j,type);
 			// Hosna, March 8, 2012
 			// changing nested ifs to switch for optimality
 			switch (type){

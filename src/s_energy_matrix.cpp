@@ -471,7 +471,7 @@ energy_t s_energy_matrix::HairpinE_emodel(const std::string& seq, const short* S
 
 	if (ptype_closing==0) return INF;
 
-	if ((linker_pos != 0) && (i < linker_pos) && (j > linker_pos+linker_length-1)) return 0;
+	if(is_cross_model(i,j)) return 0;
 
 	return E_Hairpin(j-i-1,ptype_closing,S1[i+1],S1[j-1],&seq.c_str()[i-1], const_cast<paramT *>(params));
 }
@@ -507,6 +507,7 @@ energy_t s_energy_matrix::compute_internal_restricted_emodel(cand_pos_t i, cand_
     if(is_cross_model(i,j)){
         skip = linker_length;  
     }
+	if(i==23 && j==62) printf("i is %d and j is %d and skip is %d\n",i,j,skip);
 
 	energy_t v_iloop = INF;
 	cand_pos_t max_k = std::min(j-TURN-2,i+MAXLOOP+skip+1);
@@ -634,7 +635,7 @@ void s_energy_matrix::compute_energy_restricted_emodel (cand_pos_t i, cand_pos_t
 			}
 			min_en[0] = en;
 		}
-		energy_t en = emodel_energy_function(i,j,compute_internal_restricted(i,j,params_,tree.up),compute_internal_restricted(i,j,params2_,tree.up));
+		energy_t en = emodel_energy_function(i,j,compute_internal_restricted_emodel(i,j,params_,tree.up),compute_internal_restricted_emodel(i,j,params2_,tree.up));
 		min_en[1] = en;
 
 		// No params here which means the values were computed elsewhere so I don't do the emodel calc here
@@ -648,6 +649,7 @@ void s_energy_matrix::compute_energy_restricted_emodel (cand_pos_t i, cand_pos_t
             min_rank = k;
         }
     }
+	if(i==23 && j==62) printf("i is %d and j is %d and en1 is %d and en2 is %d and en3 is %d and start is %d\n",i,j,min_en[0],min_en[1],min_en[2],start_hybrid_penalty);
 
     switch (min_rank)
     {
