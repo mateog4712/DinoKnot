@@ -27,8 +27,6 @@ bool compare_hotspot_ptr(Hotspot &a, Hotspot &b);
 
 class W_final{
 	public:
-		W_final(std::string seq, std::string res, bool pk_free, bool pk_only, int dangle);
-        // constructor for the restricted mfe case
 
         W_final(std::string seq,std::string res,bool pk_free, bool pk_only, vrna_param_s *params1, vrna_param_s *params2);
         // constructor for emodel case
@@ -36,7 +34,6 @@ class W_final{
         ~W_final ();
         // The destructor
 
-        energy_t hfold (sparse_tree &tree);
         energy_t hfold_interacting(sparse_tree &tree);
 
         vrna_param_t *params_;
@@ -76,10 +73,6 @@ class W_final{
 
         void space_allocation();
 
-        // allocate the necessary memory
-        double fold_sequence_restricted ();
-
-        void backtrack_restricted (seq_interval *cur_interval, sparse_tree &tree);
         void backtrack_restricted_emodel (seq_interval *cur_interval, sparse_tree &tree);
         // backtrack, the restricted case
 

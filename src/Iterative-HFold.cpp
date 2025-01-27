@@ -197,30 +197,12 @@ std::string remove_x(std::string structure){
 	return structure; 
 }
 
-std::string hfold(std::string seq,std::string res, energy_t &energy, bool pk_free, bool pk_only, int dangles){
-	sparse_tree tree(res,res.length());
-	W_final min_fold(seq,res, pk_free, pk_only,dangles);
-	energy = min_fold.hfold(tree);
-    std::string structure = min_fold.structure;
-    return structure;
-}
-
 std::string hfold(std::string seq,std::string res, energy_t &energy, bool pk_free, bool pk_only, vrna_param_s *params1, vrna_param_s *params2){
 	sparse_tree tree(res,res.length());
 	W_final min_fold(seq,res, pk_free, pk_only,params1,params2);
 	energy = min_fold.hfold_interacting(tree);
     std::string structure = min_fold.structure;
     return structure;
-}
-
-std::string method2(std::string &seq, std::string &restricted, energy_t &method2_energy, int dangles){
-
-	std::string pk_only_output = hfold(seq,restricted,method2_energy,false,true,dangles);
-	std::string pk_free_removed = remove_structure_intersection(restricted,pk_only_output);
-	std::string no_x_restricted = remove_x(restricted);
-
-	if(pk_only_output != no_x_restricted) return hfold(seq,pk_free_removed,method2_energy,false,false,dangles);
-	else return pk_only_output;
 }
 
 std::string method2(std::string &seq, std::string &restricted, energy_t &method2_energy, vrna_param_s *params1, vrna_param_s *params2){
@@ -231,74 +213,6 @@ std::string method2(std::string &seq, std::string &restricted, energy_t &method2
 
 	if(pk_only_output != no_x_restricted) return hfold(seq,pk_free_removed,method2_energy,false,false,params1,params2);
 	else return pk_only_output;
-}
-
-
-std::string Iterative_HFold (std::string seq,std::string res, double &en, int &method_chosen){
-
-	// Iterate through all hotspots or the single given input structure
-	energy_t method1_energy = INF;
-	energy_t method2_energy = INF;
-	energy_t method3_energy = INF;
-	energy_t method4_energy = INF;
-	energy_t final_en = INF;
-	std::string final_structure;
-
-	//Method1
-	std::string method1_structure = hfold(seq,res,method1_energy,false,false,dangles);
-	if(method1_energy < final_en){
-	final_en = method1_energy;
-	final_structure=method1_structure;
-	method_chosen = 1;
-	}
-
-	//Method2
-	std::string method2_structure = method2(seq,res,method2_energy,dangles);
-	if(method2_energy < final_en){
-	final_en = method2_energy;
-	final_structure=method2_structure;
-	method_chosen = 2;
-	}
-
-	//Method3
-	std::string pk_free = hfold(seq,res,method3_energy,true,false,dangles);
-	std::string relaxed = obtainRelaxedStems(res,pk_free);
-	for(int i =0; i< res.length();++i) if(res[i] == 'x') relaxed[i] = 'x';
-	std::string method3_structure = method2(seq,relaxed,method3_energy,dangles);
-	if(method3_energy < final_en){
-		final_en = method3_energy;
-		final_structure=method3_structure;
-		method_chosen = 3;
-	}
-
-	//Method4
-	std::vector< std::pair<int,int> > disjoint_substructure_index;
-	find_disjoint_substructure(res,disjoint_substructure_index);
-	std::string disjoint_structure = res;
-	for(auto current_substructure_index : disjoint_substructure_index){
-		cand_pos_t i = current_substructure_index.first;
-		cand_pos_t j = current_substructure_index.second;
-		energy_t energy = INF;
-
-		std::string subsequence = seq.substr(i,j-i+1);
-		std::string substructure = res.substr(i,j-i+1);
-
-		std::string pk_free = hfold(subsequence,substructure,energy,true,false,dangles);
-		std::string relaxed = obtainRelaxedStems(substructure,pk_free);
-		for(int i =0; i< substructure.length();++i) if(substructure[i] == 'x') relaxed[i] = 'x';
-		disjoint_structure.replace(i,j-i+1,relaxed);
-	}
-	std::string method4_structure = method2(seq,disjoint_structure,method4_energy,dangles);
-	if(method4_energy < final_en){
-		final_en = method4_energy;
-		final_structure=method4_structure;
-		method_chosen = 4;
-	}
-
-	double final_energy = final_en/100.0;
-	en = final_energy;
-
-    return final_structure;
 }
 
 std::string Iterative_HFold_interacting (std::string seq,std::string res, double &en, vrna_param_s *params1, vrna_param_s *params2, int &method_chosen){
@@ -321,47 +235,47 @@ std::string Iterative_HFold_interacting (std::string seq,std::string res, double
 	}
 
 	// //Method2
-	// std::string method2_structure = method2(seq,res,method2_energy,params1,params2);
-	// if(method2_energy < final_en){
-	// final_en = method2_energy;
-	// final_structure=method2_structure;
-	// method_chosen = 2;
-	// }
+	std::string method2_structure = method2(seq,res,method2_energy,params1,params2);
+	if(method2_energy < final_en){
+	final_en = method2_energy;
+	final_structure=method2_structure;
+	method_chosen = 2;
+	}
 
 	// //Method3
-	// std::string pk_free = hfold(seq,res,method3_energy,true,false,params1,params2);
-	// std::string relaxed = obtainRelaxedStems(res,pk_free);
-	// for(int i =0; i< res.length();++i) if(res[i] == 'x') relaxed[i] = 'x';
-	// std::string method3_structure = method2(seq,relaxed,method3_energy,params1,params2);
-	// if(method3_energy < final_en){
-	// 	final_en = method3_energy;
-	// 	final_structure=method3_structure;
-	// method_chosen = 3;
-	// }
+	std::string pk_free = hfold(seq,res,method3_energy,true,false,params1,params2);
+	std::string relaxed = obtainRelaxedStems(res,pk_free);
+	for(int i =0; i< res.length();++i) if(res[i] == 'x') relaxed[i] = 'x';
+	std::string method3_structure = method2(seq,relaxed,method3_energy,params1,params2);
+	if(method3_energy < final_en){
+		final_en = method3_energy;
+		final_structure=method3_structure;
+	method_chosen = 3;
+	}
 
 	// //Method4
-	// std::vector< std::pair<int,int> > disjoint_substructure_index;
-	// find_disjoint_substructure(res,disjoint_substructure_index);
-	// std::string disjoint_structure = res;
-	// for(auto current_substructure_index : disjoint_substructure_index){
-	// 	cand_pos_t i = current_substructure_index.first;
-	// 	cand_pos_t j = current_substructure_index.second;
-	// 	energy_t energy = INF;
+	std::vector< std::pair<int,int> > disjoint_substructure_index;
+	find_disjoint_substructure(res,disjoint_substructure_index);
+	std::string disjoint_structure = res;
+	for(auto current_substructure_index : disjoint_substructure_index){
+		cand_pos_t i = current_substructure_index.first;
+		cand_pos_t j = current_substructure_index.second;
+		energy_t energy = INF;
 
-	// 	std::string subsequence = seq.substr(i,j-i+1);
-	// 	std::string substructure = res.substr(i,j-i+1);
+		std::string subsequence = seq.substr(i,j-i+1);
+		std::string substructure = res.substr(i,j-i+1);
 
-	// 	std::string pk_free = hfold(subsequence,substructure,energy,true,false,params1,params2);
-	// 	std::string relaxed = obtainRelaxedStems(substructure,pk_free);
-	//  for(int i =0; i< substructure.length();++i) if(substructure[i] == 'x') relaxed[i] = 'x';
-	// 	disjoint_structure.replace(i,j-i+1,relaxed);
-	// }
-	// std::string method4_structure = method2(seq,disjoint_structure,method4_energy,params1,params2);
-	// if(method4_energy < final_en){
-	// 	final_en = method4_energy;
-	// 	final_structure=method4_structure;
-	// method_chosen = 4;
-	// }
+		std::string pk_free = hfold(subsequence,substructure,energy,true,false,params1,params2);
+		std::string relaxed = obtainRelaxedStems(substructure,pk_free);
+	 for(int i =0; i< substructure.length();++i) if(substructure[i] == 'x') relaxed[i] = 'x';
+		disjoint_structure.replace(i,j-i+1,relaxed);
+	}
+	std::string method4_structure = method2(seq,disjoint_structure,method4_energy,params1,params2);
+	if(method4_energy < final_en){
+		final_en = method4_energy;
+		final_structure=method4_structure;
+	method_chosen = 4;
+	}
 
 	double final_energy = final_en/100.0;
 	en = final_energy;

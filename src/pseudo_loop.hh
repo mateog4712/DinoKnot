@@ -14,13 +14,11 @@ class pseudo_loop{
 
 public:
 	// constructor
-	pseudo_loop(std::string seq, std::string restricted, s_energy_matrix *V, short *S, short *S1, vrna_param_t *params);
 	pseudo_loop(std::string seq, std::string res, s_energy_matrix *V, short *S, short *S1, vrna_param_t *params, vrna_param_t *params2);
 
 	// destructor
 	~pseudo_loop();
 
-    void compute_energies(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	void compute_energies_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 
     // energy_t get_energy(cand_pos_t i, cand_pos_t j);
@@ -78,49 +76,36 @@ private:
     // function to allocate space for the arrays
     void allocate_space();
 
-    void compute_WI(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	void compute_WI_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	// Hosna: This function is supposed to fill in the WI array
 
-	void compute_VP(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	void compute_VP_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	// Hosna: this function is supposed to fill the VP array
 
 	// Computes the non-redundant recurrence from CParty (replaces VPP from original)
-	void compute_VPL(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
-	void compute_VPR(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
-
 	void compute_VPL_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	void compute_VPR_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	
 	// Hosna: this function is supposed to fill the WMB array
-	void compute_WMB(cand_pos_t i,cand_pos_t j, sparse_tree &tree);
 	void compute_WMB_emodel(cand_pos_t i,cand_pos_t j, sparse_tree &tree);
 
 	// Fills the WMBP vector
-	void compute_WMBP(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	void compute_WMBP_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	// this is the helper recurrence to fill the WMB array
 
 	// Computes the non-redundant recurrence from CParty (replaces WMBP case 2 from original)
-	void compute_WMBW(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	void compute_WMBW_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 
-	void compute_WIP(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	void compute_WIP_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	// Hosna: this function is supposed to fill the WIP array
 
 	// Hosna: this function is supposed to fill the BE array
-	void compute_BE(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos_t jp, sparse_tree &tree);
 	void compute_BE_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t ip, cand_pos_t jp, sparse_tree &tree);
 
 	// Hosna Feb 8th, 2007:
 	// I have to calculate the e_stP in a separate function
-	energy_t get_e_stP(cand_pos_t i, cand_pos_t j);
 	energy_t get_e_stP_emodel(cand_pos_t i, cand_pos_t j, const paramT *params, const paramT *params2);
-	energy_t get_e_intP(cand_pos_t i,cand_pos_t ip, cand_pos_t jp, cand_pos_t j);
 	energy_t get_e_intP_emodel(cand_pos_t i,cand_pos_t ip, cand_pos_t jp, cand_pos_t j, const paramT *params, const paramT *params2);
-	energy_t compute_int(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l, const paramT *params);
 	energy_t compute_int_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l, const paramT *params);
 	int compute_exterior_cases(cand_pos_t l, cand_pos_t j, const sparse_tree &tree);
 
