@@ -137,6 +137,7 @@ int main (int argc, char *argv[]) {
 	std::string outputDir = args_info.dir_given ? output_dir : "";
 	std::string outputFile = args_info.output_given ? output_file : "";
 	std::string hotspotDir = args_info.h_only_given ? hotspot_dir : "";
+	std::string varnaFile = args_info.varna_given ? varna : "";
 
 	int max_hotspot = args_info.h_num_given ? hotspot_num : 20;
 	int number_of_suboptimal_structure = args_info.subopt_given ? subopt : 400;
@@ -275,6 +276,12 @@ int main (int argc, char *argv[]) {
 	// 	// //printf("number_of_suboptimal_structure: %d\n",number_of_suboptimal_structure);
 		if(number_of_suboptimal_structure != 1){
 			number_of_output = std::min( (int) result_list.size(),number_of_suboptimal_structure);
+		}
+
+		if(varnaFile != "" && exists(varnaFile)){
+			std::string command = "java -cp " +  varnaFile +  " fr.orsay.lri.varna.applications.VARNAcmd -algorithm line -resolution 10.0 -basesStyle1 \"fill=##0000FF\" -basesStyle2 \"fill=#0000FF\" -basesStyle3 \"fill=#FFFF00\" -applyBasesStyle1on \"1-" + std::to_string(linker_pos-1) + "\" -applyBasesStyle2on \"" +  std::to_string(linker_pos) + "-" +  std::to_string(linker_pos+linker_length) + "\" -applyBasesStyle3on \"" +  std::to_string(linker_pos+linker_length+1) + "-" +  std::to_string(n) + "\" -sequenceDBN \"" + seq + "\" -structureDBN \"" + result_list[0].get_final_structure() + "\" -o \"file.png\"";
+			std::cout << command << std::endl;
+			system(command.c_str());
 		}
 
 	// 	//Mateo 7/19/2023

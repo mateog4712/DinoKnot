@@ -77,7 +77,7 @@ energy_t W_final::hfold_interacting(sparse_tree &tree){
 
 
 			V->compute_WMv_WMp_emodel(i,j,WMB->get_WMB(i,j),tree.tree);
-			V->compute_energy_WM_restricted_emodel(i,j,tree);
+			V->compute_energy_WM_restricted_emodel(i,j,tree,WMB->WMB);
 			// printf("i is %d and j is %d and v is %d and wmb is %d\n",i,j,V->get_energy(i,j),WMB->get_VP(i,j));
 		}
 

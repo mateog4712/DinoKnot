@@ -33,6 +33,9 @@ extern std::string input_file;
 // The file to print the hotspots to
 extern std::string hotspot_dir;
 
+// The location of the VARNA file
+extern std::string varna;
+
 // The number of hotspots to make for each sequence
 extern int hotspot_num;
 
@@ -67,6 +70,7 @@ struct args_info
   const char *dangles_help; /**< @brief Specify the dangle model*/
   const char *parameter1_help; /**< @brief Specify the parameter model for sequence 1*/
   const char *parameter2_help; /**< @brief Specify the parameter model for sequence 2*/
+  const char *varna_help; /**< @brief Specify the location for VARNA*/
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
@@ -86,6 +90,7 @@ struct args_info
   unsigned int dangles_given ;  /**< @brief Whether dangle model was given.  */
   unsigned int parameter1_given; /**< @brief Whether the parameter model for sequence 1 was given.  */
   unsigned int parameter2_given; /**< @brief Whether the parameter model for sequence 2 was given.  */
+  unsigned int varna_given; /**< @brief Whether the varna file location was given.  */
 
   char **inputs ; /**< @brief unnamed options (options without names) */
   unsigned inputs_num ; /**< @brief unnamed options number */

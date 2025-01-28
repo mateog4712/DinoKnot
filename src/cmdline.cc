@@ -39,6 +39,8 @@ std::string parameter1;
 
 std::string parameter2;
 
+std::string varna;
+
 static char *package_name = 0;
 
 const char *args_info_purpose = "Minimum free energy folding of RNA-RNA, RNA-DNA and DNA-DNA interactions";
@@ -67,7 +69,8 @@ const char *args_info_help[] = {
   "  -l, --hotspot-only     Specify the path to file to output the hotspots to",
   "  -d  --dangles          Specify the dangle model to be used",
   "  -P  --parameter1       Specify the parameter model for sequence1", 
-  "  -Q  --parameter2       Specify the parameter model for sequence2", 
+  "  -Q  --parameter2       Specify the parameter model for sequence2",
+  "  -v  --varna            Specify the location for the VARNA jar", 
 };
 
 static void clear_given (struct args_info *args_info);
@@ -99,6 +102,7 @@ static void init_args_info(struct args_info *args_info)
   args_info->dangles_help = args_info_help[16] ;
   args_info->parameter1_help = args_info_help[17] ;
   args_info->parameter2_help = args_info_help[18] ;
+  args_info->varna_help = args_info_help[19] ;
   
 }
 void
@@ -158,6 +162,7 @@ static void clear_given (struct args_info *args_info)
   args_info->dangles_given = 0;
   args_info->parameter1_given = 0;
   args_info->parameter2_given = 0;
+  args_info->varna_given = 0;
 }
 
 static void clear_args (struct args_info *args_info)
@@ -361,10 +366,11 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         { "dangles",	0, NULL, 'd' },
         { "parameter1",	0, NULL, 'P' },
         { "parameter2",	0, NULL, 'Q' },
+        { "varna", required_argument,0, 'v' },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVp:n:i:o:d:k:l:P:Q:", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVp:n:i:o:d:k:l:P:Q:v:", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -488,6 +494,18 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
             goto failure;
 
             hotspot_dir = optarg;
+        
+          break;
+
+          case 'v':	/* Specify output file  */
+        
+        
+          if (update_arg( 0 , 
+               0 , &(args_info->varna_given),
+              &(local_args_info.varna_given), optarg, 0, 0, ARG_NO,0, 0,"varna", 'v',additional_error))
+            goto failure;
+
+            varna = optarg;
         
           break;
 

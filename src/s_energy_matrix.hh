@@ -79,9 +79,9 @@ class s_energy_matrix
         energy_t compute_internal_restricted_emodel(cand_pos_t i, cand_pos_t j, const paramT *params, std::vector<int> &up);
         energy_t compute_int_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l, const paramT *params);
 
-        void compute_energy_WM_restricted_emodel (cand_pos_t i, cand_pos_t j, sparse_tree &tree);
+        void compute_energy_WM_restricted_emodel (cand_pos_t i, cand_pos_t j, sparse_tree &tree, std::vector<energy_t> &WMB);
         energy_t compute_energy_VM_restricted_emodel (cand_pos_t i, cand_pos_t j, sparse_tree &tree, paramT* params);
-        energy_t E_MLStem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij1,const energy_t& vi1j1,const short* S, paramT* params,cand_pos_t i, cand_pos_t j, const  cand_pos_t& n, std::vector<Node> &tree);
+        energy_t E_MLStem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij1,const energy_t& vi1j1,const short* S, paramT* params, paramT *params2,cand_pos_t i, cand_pos_t j, const  cand_pos_t& n, std::vector<Node> &tree);
         energy_t E_MbLoop(const energy_t WM2ij, const energy_t WM2ip1j, const energy_t WM2ijm1, const energy_t WM2ip1jm1, const short* S, paramT* params, cand_pos_t i, cand_pos_t j, std::vector<Node> &tree);
         void compute_WMv_WMp_emodel(cand_pos_t i, cand_pos_t j, energy_t WMB, std::vector<Node> &tree);
 
