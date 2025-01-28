@@ -323,13 +323,12 @@ void s_energy_matrix::compute_energy_WM_restricted_emodel (cand_pos_t i, cand_po
 	{
 		if (seq_[k] == 'X') continue;
 		cand_pos_t kj = index[k]+j-k;
-		energy_t wm_kj = E_MLStem(get_energy(k,j),get_energy(k+1,j),get_energy(k,j-1),get_energy(k+1,j-1),S_,params_,params2_,k,j,n,tree.tree);
 		energy_t wmb_kj = WMB[kj]+PSM_penalty+b_penalty;
 		bool can_pair = tree.up[k-1] >= (k-i);
 		energy_t up = emodel_energy_function(i,j,static_cast<energy_t>((k-i)*params_->MLbase),static_cast<energy_t>((k-i)*params2_->MLbase));
-		if(can_pair) m1 = std::min(m1,up + wm_kj);
+		if(can_pair) m1 = std::min(m1,up + WMv[kj]);
 		if(can_pair) m2 = std::min(m2,up + wmb_kj);
-		m3 =  std::min(m3,get_energy_WM(i,k-1) + wm_kj);
+		m3 =  std::min(m3,get_energy_WM(i,k-1) + WMv[kj]);
 		m4 =  std::min(m4,get_energy_WM(i,k-1) + wmb_kj);
 
 	}

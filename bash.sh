@@ -21,8 +21,8 @@ echo $line2 >> "out1.txt"
 # echo $line1
 # echo $line2
 # /Users/mateo2/Documents/Code/includes/Vienna/bin/RNAfold -d2 --constraint<out1.txt --enforceConstraint out1.txt -p --noPS --noDP > "out.txt"
-# gtime -o out2.txt -f "%e\t%M" ./build/DinoKnot -d1 --s1 $line1 --s2 $line1 --hotspot-num 1 -P "/Users/mateo2/Documents/Code/DinoKnot/src/params/parameters_DP09_Vienna.txt" -Q "/Users/mateo2/Documents/Code/DinoKnot/src/params/parameters_DP09_Vienna.txt"
-gtime -o out2.txt -f "%e\t%M" ../DinoKnot2/DinoKnot --s1 $line1 --s2 $line1 --hotspot-num 1
+gtime -o out2.txt -f "%e\t%M" ./build/DinoKnot -d1 --s1 $line1 --s2 $line1 --hotspot-num 1 -P "/Users/mateo2/Documents/Code/DinoKnot/src/params/parameters_DP09_Vienna.txt" -Q "/Users/mateo2/Documents/Code/DinoKnot/src/params/parameters_DP09_Vienna.txt"
+# gtime -o out2.txt -f "%e\t%M" ../DinoKnot2/DinoKnot --s1 $line1 --s2 $line1 --hotspot-num 1
 # ./build/CParty -d2 -r $line2 $line1 > "/Users/mateo2/Documents/Code/CParty/out.txt"
 # /Users/mateo2/Documents/Code/ViennaRNA-2.6.4/src/bin/RNAfold --noPS --noDP -d2 -p out1.txt > out.txt
 # /Users/mateo2/Documents/Code/HFold/HFold -s $line1 -r $line2 > "/Users/mateo2/Documents/Code/Spark/out.txt";
@@ -31,8 +31,8 @@ gtime -o out2.txt -f "%e\t%M" ../DinoKnot2/DinoKnot --s1 $line1 --s2 $line1 --ho
 # cat "/Users/mateo2/Documents/Code/Spark/out.txt" >> "/Users/mateo2/Documents/Code/output/proof/HFold/$input.txt"
 # cat "/home/mgray7/CParty/out2.txt" >> "/home/mgray7/output2/energies/RNAFold/$input.txt"
 
-# cat "/Users/mateo2/Documents/Code/DinoKnot/out2.txt" >> "/Users/mateo2/Documents/Code/output3/time/dino1/$input.txt"
-cat "/Users/mateo2/Documents/Code/DinoKnot/out2.txt" >> "/Users/mateo2/Documents/Code/output3/time/dino2/$input.txt"
+cat "/Users/mateo2/Documents/Code/DinoKnot/out2.txt" >> "/Users/mateo2/Documents/Code/output3/time/dino1/$input.txt"
+# cat "/Users/mateo2/Documents/Code/DinoKnot/out2.txt" >> "/Users/mateo2/Documents/Code/output3/time/dino2/$input.txt"
 
 
 # cat "/Users/mateo2/Documents/Code/CParty/out2.txt" >> "/Users/mateo2/Documents/Code/output2/pkfree/RNAFold/$input.txt"
