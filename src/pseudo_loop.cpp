@@ -59,7 +59,7 @@ pseudo_loop::~pseudo_loop()
  * When applied to WMBP, if all cases are 0, then we can proceed with WMBP
  * Mateo Jan 2025: Added to Fix WMBP problem
 */
-int pseudo_loop::compute_exterior_cases(cand_pos_t l, cand_pos_t j, const sparse_tree &tree){
+int pseudo_loop::compute_exterior_cases(cand_pos_t l, cand_pos_t j, sparse_tree &tree){
 	// Case 1 -> l is not covered
 	bool case1 = tree.tree[l].parent->index <= 0;
 	// Case 2 -> l is paired
@@ -91,7 +91,7 @@ void pseudo_loop::compute_energies_emodel(cand_pos_t i, cand_pos_t j, sparse_tre
 		
 		if(tree.tree[j].pair < -1) compute_VPL_emodel(i,j,tree);
 
-		if(tree.tree[j].pair < j) compute_VPR_emodel(i,j,tree);
+		if(tree.tree[i].pair < -1 && tree.tree[j].pair < -1) compute_VPR_emodel(i,j,tree);
 	}
 
 	if (!((j-i-1) <= TURN || (tree.tree[i].pair >= -1 && tree.tree[i].pair > j) || (tree.tree[j].pair >= -1 && tree.tree[j].pair < i) || (tree.tree[i].pair >= -1 && tree.tree[i].pair < i ) || (tree.tree[j].pair >= -1 && j < tree.tree[j].pair))){
@@ -121,7 +121,7 @@ void pseudo_loop::compute_energies_emodel(cand_pos_t i, cand_pos_t j, sparse_tre
 }
 
 void pseudo_loop::compute_WI_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree){
-	energy_t min = INF, m1 = INF, m2= INF, m3= INF, m4= INF, m5 = INF;
+	energy_t m1 = INF, m2= INF, m3= INF, m4= INF, m5 = INF;
 	cand_pos_t ij = index[i]+j-i;
 	
 	if(seq[i] == 'X' && seq[j] == 'X'){
@@ -273,30 +273,28 @@ void pseudo_loop::compute_VPR_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tr
 	energy_t m1 = INF, m2 = INF;
 
 	cand_pos_t max_i_bp = std::max(tree.B(i,j),tree.bp(i,j));
+		for(cand_pos_t k = max_i_bp+1; k<j; ++k){
+			
+			if (k>0 && seq[k] == 'X'){
+				continue;
+			}
 
-	for(cand_pos_t k = max_i_bp+1; k<j; ++k){
-		if (seq[k] == 'X'){
-			continue;
+			bool can_pair = tree.up[j-1] >= (j-k);
+			m1 = std::min(m1, get_VP(i,k) + get_WIP(k+1,j));
+			cand_pos_t skip_X = 0;
+			energy_t tmp = 0;
+			if(is_cross_model(k,j)){
+				skip_X = linker_length;
+				tmp = start_hybrid_penalty;
+			}
+			if(can_pair) m2 = std::min(m2,get_VP(i,k) + tmp + static_cast<energy_t>((j-k-skip_X)*cp_penalty));
 		}
-
-		bool can_pair = tree.up[j-1] >= (j-k);
-		m1 = std::min(m1, get_VP(i,k) + get_WIP(k+1,j));
-		cand_pos_t skip_X = 0;
-		energy_t tmp = 0;
-		if(is_cross_model(k,j)){
-			skip_X = linker_length;
-			tmp = start_hybrid_penalty;
-		}
-		if(can_pair) m2 = std::min(m2,get_VP(i,k) + tmp + static_cast<energy_t>((j-k-skip_X)*cp_penalty));
-	}
 
 	VPR[ij] = std::min(m1,m2);
 }
 
 void pseudo_loop::compute_VP_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree){
 	cand_pos_t ij = index[i]+j-i;
-
-	const pair_type ptype_closing = pair[S_[i]][S_[j]];	
 	
 	energy_t m1 = INF, m2 = INF, m3 = INF, m4= INF, m5 = INF, m6 = INF, m7 = INF, m8 = INF, m9 = INF; //different branches
 	
@@ -332,7 +330,7 @@ void pseudo_loop::compute_VP_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tre
 	// 4) NOT_paired(i+1) and NOT_paired(j-1) and they can pair together
 	pair_type ptype_closingip1jm1 = pair[S_[i+1]][S_[j-1]];
 	if((tree.tree[i+1].pair) < -1 && (tree.tree[j-1].pair) < -1 && ptype_closingip1jm1>0){
-		m4 = get_e_stP_emodel(i,j,params_,params2_) + get_VP(i+1,j-1);
+		m4 = get_e_stP_emodel(i,j) + get_VP(i+1,j-1);
 	}
 
 	// 5) NOT_paired(r) and NOT_paired(rp)
@@ -348,7 +346,7 @@ void pseudo_loop::compute_VP_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tre
 
 				pair_type ptype_closingkj = pair[S_[k]][S_[l]];
 				if (tree.tree[l].pair < -1 && ptype_closingkj>0 && (tree.up[(j)-1] >= ((j)-(l)-1))){
-					energy_t tmp = get_e_intP_emodel(i,k,l,j,params_,params2_) + get_VP(k,l);
+					energy_t tmp = get_e_intP_emodel(i,k,l,j) + get_VP(k,l);
 					m5 = std::min(m5,tmp);
 					
 				}
@@ -418,15 +416,14 @@ void pseudo_loop::compute_WMBP_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &t
 		energy_t tmp = INF;
 		cand_pos_t b_ij = tree.b(i,j);
 		for (cand_pos_t l = i+1; l<j ; l++)	{
-			// Hosna, April 6th, 2007
-			// whenever we use get_borders we have to check for the correct values
-			cand_pos_t bp_il = tree.bp(i,l);
-			cand_pos_t Bp_lj = tree.Bp(l,j);
+
 			// Hosna: April 19th, 2007
 			// the chosen l should be less than border_b(i,j) -- should be greater than border_b(i,l)
 			// Mateo Jan 2025 Added exterior cases to consider when looking at band borders. Solved case of [.(.].[.).]
 			int ext_case = compute_exterior_cases(l,j,tree);
 			if((b_ij > 0 && l < b_ij) || ext_case == 0){
+				cand_pos_t bp_il = tree.bp(i,l);
+				cand_pos_t Bp_lj = tree.Bp(l,j);
 				if (bp_il >= 0 && l>bp_il && Bp_lj > 0 && l<Bp_lj){ // bp(i,l) < l < Bp(l,j)
 					cand_pos_t B_lj = tree.B(l,j);
 
@@ -569,7 +566,7 @@ void pseudo_loop::compute_BE_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t ip, c
 	energy_t m1 = INF, m2 = INF, m3 = INF, m4 = INF, m5 = INF;
 	// 1) bp(i+1) == j-1
 	if (tree.tree[i+1].pair == j-1){
-		m1 = get_e_stP_emodel(i,j,params_,params2_) + get_BE(i+1,j-1,ip,jp,tree);
+		m1 = get_e_stP_emodel(i,j) + get_BE(i+1,j-1,ip,jp,tree);
 
 	}
 
@@ -583,8 +580,6 @@ void pseudo_loop::compute_BE_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t ip, c
 			// and in BE energy calculation we are looking for the oepn region (i,l)
 			// we have to look at not_paired_all[i+1,l-1]
 			cand_pos_t lp = tree.tree[l].pair;
-			cand_pos_t il = index[i]+l-i;
-			cand_pos_t lpj = index[lp]+j-lp;
 			// 2)
 			// Hosna June 29, 2007
 			// when we pass a stacked pair instead of an internal loop to e_int, it returns underflow,
@@ -596,7 +591,7 @@ void pseudo_loop::compute_BE_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t ip, c
 
 
 			if (empty_region_il && empty_region_lpj){//&& !(ip == (i+1) && jp==(j-1)) && !(l == (i+1) && lp == (j-1))){
-				energy_t tmp = get_e_intP_emodel(i,l,lp,j,params_,params2_)+ get_BE(l,lp,ip,jp,tree);
+				energy_t tmp = get_e_intP_emodel(i,l,lp,j)+ get_BE(l,lp,ip,jp,tree);
 				m2 = std::min(m2,tmp);
 			}
 
@@ -713,17 +708,17 @@ energy_t pseudo_loop::compute_int_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t 
     return E_IntLoop(k-i-1-skip1,j-l-1-skip2,ptype_closing,rtype[pair[S_[k]][S_[l]]],S1_[i+1],S1_[j-1],S1_[k-1],S1_[l+1],const_cast<paramT *>(params));
 }
 
-energy_t pseudo_loop::get_e_stP_emodel(cand_pos_t i, cand_pos_t j,const paramT *params, const paramT *params2){
+energy_t pseudo_loop::get_e_stP_emodel(cand_pos_t i, cand_pos_t j){
 	if (i+1 == j-1){ // TODO: do I need something like that or stack is taking care of this?
 		return INF;
 	}
-	energy_t ss = compute_int_emodel(i,j,i+1,j-1,params);
-	energy_t ss2 = compute_int_emodel(i,j,i+1,j-1,params2);
+	energy_t ss = compute_int_emodel(i,j,i+1,j-1,params_);
+	energy_t ss2 = compute_int_emodel(i,j,i+1,j-1,params2_);
 	energy_t en = emodel_energy_function(i,j,ss,ss2);
 	return lrint(e_stP_penalty * en);
 }
 
-energy_t pseudo_loop::get_e_intP_emodel(cand_pos_t i, cand_pos_t ip, cand_pos_t jp, cand_pos_t j,const paramT *params, const paramT *params2){
+energy_t pseudo_loop::get_e_intP_emodel(cand_pos_t i, cand_pos_t ip, cand_pos_t jp, cand_pos_t j){
 	// Hosna Feb 12th, 2007:
 	// this function is only being called in branch 5 of VP
 	// and branch 2 of BE
@@ -843,7 +838,6 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 				energy_t min = INF;
 
 				// case 1
-				cand_pos_t b_ij = tree.b(i,j);
 				if (tree.tree[j].pair < 0){
 					energy_t acc = INF;
 					cand_pos_t l3 = -1;
@@ -1038,7 +1032,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 				//case 4
 				pair_type ptype_closingip1jm1 = pair[S_[i+1]][S_[j-1]];
 				if(tree.tree[i+1].pair < 0 && tree.tree[j-1].pair < 0 && ptype_closingip1jm1 > 0){
-					tmp = get_e_stP_emodel(i,j,params_,params2_)+ get_VP(i+1,j-1);
+					tmp = get_e_stP_emodel(i,j)+ get_VP(i+1,j-1);
 					if (tmp < min){
 						min = tmp;
 						best_row = 4;
@@ -1065,7 +1059,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 							if (tree.tree[l].pair < -1 && ptype_closingkj>0 && (tree.up[(j)-1] >= ((j)-(l)-1))){
 								// Hosna: April 20, 2007
 								// i and ip and j and jp should be in the same arc
-								tmp = get_e_intP_emodel(i,k,l,j,params_,params2_) + get_VP(k,l);
+								tmp = get_e_intP_emodel(i,k,l,j) + get_VP(k,l);
 								if (tmp < min){
 									min = tmp;
 									best_row = 5;
@@ -1442,7 +1436,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 			cand_pos_t best_row = -1, best_l = INF;
 			//case 1
 			if (tree.tree[i+1].pair == j-1){
-				tmp = get_e_stP_emodel(i,j,params_,params2_) + get_BE(i+1,j-1,ip,jp,tree);
+				tmp = get_e_stP_emodel(i,j) + get_BE(i+1,j-1,ip,jp,tree);
 				if(tmp < min){
 					min = tmp;
 					best_row = 1;
@@ -1458,7 +1452,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 				bool weakly_closed_lpj = tree.weakly_closed(lp+1,j-1); // weakly closed between l+1 and ip-1
 
 				if (empty_region_il && empty_region_lpj){
-					tmp = get_e_intP_emodel(i,l,lp,j,params_,params2_)+ get_BE(l,lp,ip,jp,tree);
+					tmp = get_e_intP_emodel(i,l,lp,j)+ get_BE(l,lp,ip,jp,tree);
 					if (min > tmp){
 						min = tmp;
 						best_row = 2;
@@ -1482,12 +1476,12 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 					// After meeting with Anne and Cristina --> ap should have 2* bp to consider the biggest and the one that crosses
 					// in a multiloop that spans a band
 					cand_pos_t skip_X = 0;
-					energy_t temp = 0;
+					energy_t penalty = 0;
 					if(is_cross_model(lp,j)){
 						skip_X = linker_length;
-						temp = start_hybrid_penalty;
+						penalty = start_hybrid_penalty;
 					}
-					tmp = get_WIP(i+1,l-1) + get_BE(l,lp,ip,jp,tree) + c_penalty * (j-lp+1-skip_X) + ap_penalty + 2*bp_penalty + tmp;
+					tmp = get_WIP(i+1,l-1) + get_BE(l,lp,ip,jp,tree) + c_penalty * (j-lp+1-skip_X) + ap_penalty + 2*bp_penalty + penalty;
 					if (min > tmp){
 						min = tmp;
 						best_row = 4;
@@ -1501,12 +1495,12 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 					// After meeting with Anne and Cristina --> ap should have 2* bp to consider the biggest and the one that crosses
 					// in a multiloop that spans a band
 					cand_pos_t skip_X = 0;
-					energy_t temp = 0;
+					energy_t penalty = 0;
 					if(is_cross_model(i,l)){
 						skip_X = linker_length;
-						temp = start_hybrid_penalty;
+						penalty = start_hybrid_penalty;
 					}
-					tmp = ap_penalty + 2*bp_penalty + c_penalty * (l-i+1-skip_X) + get_BE(l,lp,ip,jp,tree) + get_WIP(lp+1,j-1) + tmp;
+					tmp = ap_penalty + 2*bp_penalty + c_penalty * (l-i+1-skip_X) + get_BE(l,lp,ip,jp,tree) + get_WIP(lp+1,j-1) + penalty;
 					if (min > tmp){
 						min = tmp;
 						best_row = 5;
@@ -1588,7 +1582,6 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 			}
 
 			for (cand_pos_t k = i+1; k < j-TURN-1; ++k){
-				bool can_pair = tree.up[k-1] >= (k-i);
 				energy_t wi_1 = get_WIP(i,k-1);
 				tmp = wi_1 + V->get_energy(k,j);
 				if (tmp < min){

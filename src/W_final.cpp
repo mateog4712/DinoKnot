@@ -436,7 +436,8 @@ void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tre
 
 			if (j==1) return;
 
-			int min = INF, tmp, best_row, i, best_i, acc, energy_ij;
+			energy_t min = INF, tmp = INF, acc = INF, energy_ij = INF;
+			cand_pos_t best_row = -1, best_i = -1;
 
 			// this case is for j unpaired, so I have to check that.
 			if (tree.tree[j].pair <= -1)
@@ -448,7 +449,7 @@ void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tre
 					best_row = 0;
 				}
 			}
-			for (i=1; i<=j-1; i++)    // no TURN
+			for (cand_pos_t i=1; i<=j-1; i++)    // no TURN
 			{
 				if (seq_[i] == 'X' || seq_[j] == 'X') continue;
 				// Don't need to make sure i and j don't have to pair with something else
@@ -522,7 +523,7 @@ void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tre
 		// Hosna June 30, 2007
 		// The following would not take care of when
 		// we have some unpaired bases before the start of the WMB
-		for (i=1; i<=j-1; i++)
+		for (cand_pos_t i=1; i<=j-1; i++)
 		{
 			// Hosna: July 9, 2007
 			// We only chop W to W + WMB when the bases before WMB are free
@@ -653,7 +654,7 @@ void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tre
 			cand_pos_t i = cur_interval->i;
 			cand_pos_t j = cur_interval->j;
 			energy_t min = INF;
-			cand_pos_t best_k = j, best_row;
+			cand_pos_t best_k = j, best_row = -1;
 			  
 			for (cand_pos_t k=i; k <= j-TURN-1; k++){	
 				energy_t m1 = INF,m2 = INF;
@@ -918,12 +919,13 @@ void get_hotspots(std::string seq,std::vector<Hotspot> &hotspot_list,int max_hot
 
     //make sure we only keep top 20 hotspot with lowest energy
     std::sort(hotspot_list.begin(), hotspot_list.end(),compare_hotspot_ptr);
-    while(hotspot_list.size() > max_hotspot){
+	cand_pos_t size = hotspot_list.size();
+    while(size > max_hotspot){
         hotspot_list.pop_back();
     }
 
     //if no hotspot found, add all _ as restricted
-    if(hotspot_list.size() == 0){
+    if(size == 0){
         Hotspot hotspot(1,n,n+1);
         hotspot.set_default_structure();
         hotspot_list.push_back(hotspot);

@@ -60,7 +60,7 @@ void find_disjoint_substructure(std::string structure, std::vector< std::pair<in
  * @param p_table Restricted array
  */
 void detect_pairs(const std::string &structure, std::vector<cand_pos_t> &p_table){
-	cand_pos_t i, j, count = 0, length = structure.length(),last_j=length;
+	cand_pos_t i, j, count = 0, length = structure.length();
 	std::vector<cand_pos_t>  pairs;
 	pairs.push_back(length);
 
@@ -245,7 +245,8 @@ std::string Iterative_HFold_interacting (std::string seq,std::string res, double
 	// //Method3
 	std::string pk_free = hfold(seq,res,method3_energy,true,false,params1,params2);
 	std::string relaxed = obtainRelaxedStems(res,pk_free);
-	for(int i =0; i< res.length();++i) if(res[i] == 'x') relaxed[i] = 'x';
+	cand_pos_t n = res.length();
+	for(cand_pos_t i =0; i< n;++i) if(res[i] == 'x') relaxed[i] = 'x';
 	std::string method3_structure = method2(seq,relaxed,method3_energy,params1,params2);
 	if(method3_energy < final_en){
 		final_en = method3_energy;
@@ -267,7 +268,8 @@ std::string Iterative_HFold_interacting (std::string seq,std::string res, double
 
 		std::string pk_free = hfold(subsequence,substructure,energy,true,false,params1,params2);
 		std::string relaxed = obtainRelaxedStems(substructure,pk_free);
-	 for(int i =0; i< substructure.length();++i) if(substructure[i] == 'x') relaxed[i] = 'x';
+		cand_pos_t sub_n = substructure.length();
+	 	for(int i =0; i< sub_n;++i) if(substructure[i] == 'x') relaxed[i] = 'x';
 		disjoint_structure.replace(i,j-i+1,relaxed);
 	}
 	std::string method4_structure = method2(seq,disjoint_structure,method4_energy,params1,params2);
@@ -281,26 +283,4 @@ std::string Iterative_HFold_interacting (std::string seq,std::string res, double
 	en = final_energy;
 
     return final_structure;
-}
-
-//---------------------------------------this function is suppose to be the same as the one in Hfold_interacting, if any changes are made, please change that one too--------------------
-//kevin 30 Aug 2017
-//check if the computed structure matches the restricted structure
-int is_invalid_restriction(char* restricted_structure, char* current_structure){
-	std::string openBracketArray ("({[");
-	std::string closeBracketArray (")}]");
-
-	for (int i=0; i < strlen(restricted_structure); i++){
-        if(restricted_structure[i] != '_' && restricted_structure[i] != current_structure[i]){
-			if( (openBracketArray.find_first_of(restricted_structure[i]) != -1) && ((openBracketArray.find_first_of(current_structure[i]) != -1)) ){
-				continue;
-			}else if ( (closeBracketArray.find_first_of(restricted_structure[i]) != -1) && ((closeBracketArray.find_first_of(current_structure[i]) != -1)) ){
-				continue;
-			}else{
-				return 1;
-			}
-		}
-
-    }
-	return 0;
 }

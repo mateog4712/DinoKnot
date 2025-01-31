@@ -232,11 +232,13 @@ int main (int argc, char *argv[]) {
 			std::cout << "Input File does not exist!" << std::endl;
 			exit (EXIT_FAILURE);
     	}
-		for(int i =0; i < hotspot_list1.size(); i++){
+		cand_pos_t size1 = hotspot_list1.size();
+		cand_pos_t size2 = hotspot_list2.size();
+		for(cand_pos_t i =0; i < size1; i++){
 			out << "Seq1_hotspot_" << i << ": " << hotspot_list1[i].get_structure() << "(" << hotspot_list1[i].get_energy() << ")" << std::endl;
 		}
 		out << "---------------" << std::endl;
-		for(int j = 0; j < hotspot_list2.size(); j++){
+		for(cand_pos_t j = 0; j < size2; j++){
 			out << "Seq2_hotspot_" << j << ": " << hotspot_list2[j].get_structure() << "(" << hotspot_list2[j].get_energy() << ")" << std::endl;
 		}
 		out.close();
@@ -249,8 +251,10 @@ int main (int argc, char *argv[]) {
 		std::vector<Result> result_list;
 		
 		cand_pos_t n = seq.length();
-		for(int i =0; i < hotspot_list1.size(); i++){
-			for(int j = 0; j < hotspot_list2.size(); j++){
+		cand_pos_t size1 = hotspot_list1.size();
+		cand_pos_t size2 = hotspot_list2.size();
+		for(int i =0; i < size1; i++){
+			for(int j = 0; j < size2; j++){
 				
 				double final_energy = 0;
 				int method_chosen = 1;
@@ -260,8 +264,6 @@ int main (int argc, char *argv[]) {
 
 				Result result(seq,restricted,hotspot_list1[i].get_energy()+hotspot_list2[i].get_energy(),structure,final_energy,method_chosen);
 				result_list.push_back(result);
-				std::cout << restricted << "\n" << std::endl;
-				std::cout << structure << " (" << final_energy << ")" << std::endl;
 			}
 		}
 	
@@ -280,52 +282,63 @@ int main (int argc, char *argv[]) {
 
 		if(varnaFile != "" && exists(varnaFile)){
 			std::string command = "java -cp " +  varnaFile +  " fr.orsay.lri.varna.applications.VARNAcmd -algorithm line -resolution 10.0 -basesStyle1 \"fill=##0000FF\" -basesStyle2 \"fill=#0000FF\" -basesStyle3 \"fill=#FFFF00\" -applyBasesStyle1on \"1-" + std::to_string(linker_pos-1) + "\" -applyBasesStyle2on \"" +  std::to_string(linker_pos) + "-" +  std::to_string(linker_pos+linker_length) + "\" -applyBasesStyle3on \"" +  std::to_string(linker_pos+linker_length+1) + "-" +  std::to_string(n) + "\" -sequenceDBN \"" + seq + "\" -structureDBN \"" + result_list[0].get_final_structure() + "\" -o \"file.png\"";
-			std::cout << command << std::endl;
-			system(command.c_str());
+			int success = system(command.c_str());
 		}
 
-	// 	//Mateo 7/19/2023
-	// 	//output to file
-	// 	if(outputFile != ""){
-	// 		std::ofstream out(output_file);
-	// 		if(!exists(output_file)){
-	// 			std::cout << "file is not valid" << std::endl;
-	// 			exit(EXIT_FAILURE);
-	// 		}
+		//Mateo 7/19/2023
+		//output to file
+		if(outputFile != ""){
+			std::ofstream out(output_file);
+			if(!exists(output_file)){
+				std::cout << "file is not valid" << std::endl;
+				exit(EXIT_FAILURE);
+			}
 
-	// 		out << "Seq:          " << seq << std::endl;
-	// 		for (int i=0; i < number_of_output; i++) {
-	// 			out << "Restricted_" << i << ": " << result_list[i].get_restricted() << std::endl;;
-	// 			out << "Result_" << i << ":     " << result_list[i].get_final_structure() << " (" << result_list[i].get_final_energy() << ")" << std::endl;
-			
-	// 		}
-	// 		out.close();
-	// 	}
-	// 	else if(outputDir != ""){
-	// 		// Mateo 2023
-	// 		if(exists(outputDir)){
-	// 			if(outputDir[outputDir.length()] != '/') outputDir += '/';
-	// 			for (int i=0; i < number_of_output; ++i) {
-	// 				std::string path_to_file = outputDir + "output_" + std::to_string(i) + ".txt";
-	// 				std::ofstream out(path_to_file);
-	// 				out << "Seq:          " << seq << std::endl;
-	// 				out << "Restricted_" << i << ": " << result_list[i].get_restricted() << std::endl;;
-	// 				out << "Result_" << i << ":     " << result_list[i].get_final_structure() << " (" << result_list[i].get_final_energy() << ")" << std::endl;  
-	// 				out.close();
-	// 			}
-	// 		}
-	// 		else{
-	// 			std::cout << "Not a valid output directory" << std::endl;
-	// 			exit(EXIT_FAILURE);
-	// 		}
-	// 	} else{
-	// 		// Mateo 2023
-	// 		std::cout << "Seq:          " << seq << std::endl;
-	// 		for (int i=0; i < number_of_output; i++) {
-	// 			std::cout << "Restricted_" << i << ": " << result_list[i].get_restricted() << std::endl;;
-	// 			std::cout << "Result_" << i << ":     " << result_list[i].get_final_structure() << " (" << result_list[i].get_final_energy() << ")" << std::endl;
-	// 		}
-	// 	}
+			std::cout << "Seq:          " << seq << std::endl;
+			std::cout << "Restricted_" << 0 << ": " << result_list[0].get_restricted() << std::endl;;
+			std::cout << "Result_" << 0 << ":     " << result_list[0].get_final_structure() << " (" << result_list[0].get_final_energy() << ")" << std::endl;
+			for (int i=1; i < number_of_output; i++) {
+				if(result_list[i].get_final_structure() == result_list[i-1].get_final_structure()) continue;
+				std::cout << "Restricted_" << i << ": " << result_list[i].get_restricted() << std::endl;;
+				std::cout << "Result_" << i << ":     " << result_list[i].get_final_structure() << " (" << result_list[i].get_final_energy() << ")" << std::endl;
+			}
+			out.close();
+		}
+		else if(outputDir != ""){
+			// Mateo 2023
+			if(exists(outputDir)){
+				if(outputDir[outputDir.length()] != '/') outputDir += '/';
+				std::string path_to_file = outputDir + "output_" + std::to_string(0) + ".txt";
+				std::ofstream out(path_to_file);
+				out << "Seq:          " << seq << std::endl;
+				out << "Restricted_" << 0 << ": " << result_list[0].get_restricted() << std::endl;;
+				out << "Result_" << 0 << ":     " << result_list[0].get_final_structure() << " (" << result_list[0].get_final_energy() << ")" << std::endl;  
+				out.close();
+				for (int i=1; i < number_of_output; ++i) {
+					if(result_list[i].get_final_structure() == result_list[i-1].get_final_structure()) continue;
+					std::string path_to_file = outputDir + "output_" + std::to_string(i) + ".txt";
+					std::ofstream out(path_to_file);
+					out << "Seq:          " << seq << std::endl;
+					out << "Restricted_" << i << ": " << result_list[i].get_restricted() << std::endl;;
+					out << "Result_" << i << ":     " << result_list[i].get_final_structure() << " (" << result_list[i].get_final_energy() << ")" << std::endl;  
+					out.close();
+				}
+			}
+			else{
+				std::cout << "Not a valid output directory" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+		} else{
+			// Mateo 2023
+			std::cout << "Seq:          " << seq << std::endl;
+			std::cout << "Restricted_" << 0 << ": " << result_list[0].get_restricted() << std::endl;;
+			std::cout << "Result_" << 0 << ":     " << result_list[0].get_final_structure() << " (" << result_list[0].get_final_energy() << ")" << std::endl;
+			for (int i=1; i < number_of_output; i++) {
+				if(result_list[i].get_final_structure() == result_list[i-1].get_final_structure()) continue;
+				std::cout << "Restricted_" << i << ": " << result_list[i].get_restricted() << std::endl;;
+				std::cout << "Result_" << i << ":     " << result_list[i].get_final_structure() << " (" << result_list[i].get_final_energy() << ")" << std::endl;
+			}
+		}
 	}
 	return 0;
 }
