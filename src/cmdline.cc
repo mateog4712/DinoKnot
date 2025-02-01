@@ -391,8 +391,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           if (update_arg( 0 , 
                0 , &(args_info->pen_given),
-              &(local_args_info.pen_given), optarg, 0, 0, ARG_NO,0, 0,"pen", 'p',additional_error))
-            goto failure;
+              &(local_args_info.pen_given), optarg, 0, 0, ARG_NO,0, 0,"pen", 'p',additional_error)){
+            goto failure;}
 
             hybrid_pen = strtod(optarg,NULL);
             
@@ -404,8 +404,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           if (update_arg( 0 , 
                0 , &(args_info->subopt_given),
-              &(local_args_info.subopt_given), optarg, 0, 0, ARG_NO,0, 0,"opt", 'g',additional_error))
-            goto failure;
+              &(local_args_info.subopt_given), optarg, 0, 0, ARG_NO,0, 0,"opt", 'g',additional_error)){
+            goto failure;}
 
             subopt = strtol(optarg,NULL,10);
             
@@ -417,8 +417,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           if (update_arg( 0 , 
                0 , &(args_info->input_given),
-              &(local_args_info.input_given), optarg, 0, 0, ARG_NO,0, 0,"input-file", 'i',additional_error))
-            goto failure;
+              &(local_args_info.input_given), optarg, 0, 0, ARG_NO,0, 0,"input-file", 'i',additional_error)){
+            goto failure;}
 
             input_file = optarg;
         
@@ -429,8 +429,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           if (update_arg( 0 , 
                0 , &(args_info->output_given),
-              &(local_args_info.output_given), optarg, 0, 0, ARG_NO,0, 0,"output-file", 'o',additional_error))
-            goto failure;
+              &(local_args_info.output_given), optarg, 0, 0, ARG_NO,0, 0,"output-file", 'o',additional_error)){
+            goto failure;}
 
             output_file = optarg;
         
@@ -441,8 +441,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           if (update_arg( 0 , 
                0 , &(args_info->dangles_given),
-              &(local_args_info.dangles_given), optarg, 0, 0, ARG_NO,0, 0,"dangles", 'd',additional_error))
-            goto failure;
+              &(local_args_info.dangles_given), optarg, 0, 0, ARG_NO,0, 0,"dangles", 'd',additional_error)){
+            goto failure;}
 
             dangle_model = strtod(optarg,NULL);
         
@@ -453,8 +453,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           if (update_arg( 0 , 
                0 , &(args_info->parameter1_given),
-              &(local_args_info.parameter1_given), optarg, 0, 0, ARG_NO,0, 0,"parameter1", 'P',additional_error))
-            goto failure;
+              &(local_args_info.parameter1_given), optarg, 0, 0, ARG_NO,0, 0,"parameter1", 'P',additional_error)){
+            goto failure;}
 
             parameter1 = optarg;
         
@@ -465,8 +465,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           if (update_arg( 0 , 
                0 , &(args_info->parameter2_given),
-              &(local_args_info.parameter2_given), optarg, 0, 0, ARG_NO,0, 0,"parameter2", 'Q',additional_error))
-            goto failure;
+              &(local_args_info.parameter2_given), optarg, 0, 0, ARG_NO,0, 0,"parameter2", 'Q',additional_error)){
+            goto failure;}
 
             parameter2 = optarg;
         
@@ -477,8 +477,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           if (update_arg( 0 , 
                0 , &(args_info->h_num_given),
-              &(local_args_info.h_num_given), optarg, 0, 0, ARG_NO,0, 0,"hotspot-num", 'k',additional_error))
-            goto failure;
+              &(local_args_info.h_num_given), optarg, 0, 0, ARG_NO,0, 0,"hotspot-num", 'k',additional_error)){
+            goto failure;}
 
             hotspot_num = strtol(optarg,NULL,10);
             
@@ -490,8 +490,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           if (update_arg( 0 , 
                0 , &(args_info->h_only_given),
-              &(local_args_info.h_only_given), optarg, 0, 0, ARG_NO,0, 0,"hotspot-only", 'l',additional_error))
-            goto failure;
+              &(local_args_info.h_only_given), optarg, 0, 0, ARG_NO,0, 0,"hotspot-only", 'l',additional_error)){
+            goto failure;}
 
             hotspot_dir = optarg;
         
@@ -502,8 +502,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           if (update_arg( 0 , 
                0 , &(args_info->varna_given),
-              &(local_args_info.varna_given), optarg, 0, 0, ARG_NO,0, 0,"varna", 'v',additional_error))
-            goto failure;
+              &(local_args_info.varna_given), optarg, 0, 0, ARG_NO,0, 0,"varna", 'v',additional_error)){
+            goto failure;}
 
             varna = optarg;
         
@@ -517,8 +517,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
             if (update_arg( 0 , 
                 0 , &(args_info->sequence1_given),
-                &(local_args_info.sequence1_given), optarg, 0, 0, ARG_NO,0, 0,"s1", '-',additional_error))
-              goto failure;
+                &(local_args_info.sequence1_given), optarg, 0, 0, ARG_NO,0, 0,"s1", '-',additional_error)){
+              goto failure;}
 
             sequence_1 = optarg;
         
@@ -529,8 +529,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
           
             if (update_arg( 0 , 
                 0 , &(args_info->structure1_given),
-                &(local_args_info.structure1_given), optarg, 0, 0, ARG_NO,0, 0,"r1", '-',additional_error))
-              goto failure;
+                &(local_args_info.structure1_given), optarg, 0, 0, ARG_NO,0, 0,"r1", '-',additional_error)){
+              goto failure;}
 
               structure_1 = optarg;
           
@@ -541,8 +541,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
           
             if (update_arg( 0 , 
                 0 , &(args_info->sequence2_given),
-                &(local_args_info.sequence2_given), optarg, 0, 0, ARG_NO,0, 0,"s2", '-',additional_error))
-              goto failure;
+                &(local_args_info.sequence2_given), optarg, 0, 0, ARG_NO,0, 0,"s2", '-',additional_error)){
+              goto failure;}
 
               sequence_2 = optarg;
           
@@ -553,8 +553,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
           
             if (update_arg( 0 , 
                 0 , &(args_info->structure2_given),
-                &(local_args_info.structure2_given), optarg, 0, 0, ARG_NO,0, 0,"r2", '-',additional_error))
-              goto failure;
+                &(local_args_info.structure2_given), optarg, 0, 0, ARG_NO,0, 0,"r2", '-',additional_error)){
+              goto failure;}
 
               structure_2 = optarg;
           
@@ -565,8 +565,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
           
             if (update_arg( 0 , 
                 0 , &(args_info->type1_given),
-                &(local_args_info.type1_given), optarg, 0, 0, ARG_NO,0, 0,"t1", '-',additional_error))
-              goto failure;
+                &(local_args_info.type1_given), optarg, 0, 0, ARG_NO,0, 0,"t1", '-',additional_error)){
+              goto failure;}
 
               type_1 = strtol(optarg,NULL,10);
           
@@ -577,8 +577,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
           
             if (update_arg( 0 , 
                 0 , &(args_info->type2_given),
-                &(local_args_info.type2_given), optarg, 0, 0, ARG_NO,0, 0,"t2", '-',additional_error))
-              goto failure;
+                &(local_args_info.type2_given), optarg, 0, 0, ARG_NO,0, 0,"t2", '-',additional_error)){
+              goto failure;}
 
               type_2 = strtol(optarg,NULL,10);
           
@@ -589,8 +589,8 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
           
             if (update_arg( 0 , 
                 0 , &(args_info->dir_given),
-                &(local_args_info.dir_given), optarg, 0, 0, ARG_NO,0, 0,"dir", '-',additional_error))
-              goto failure;
+                &(local_args_info.dir_given), optarg, 0, 0, ARG_NO,0, 0,"dir", '-',additional_error)){
+              goto failure;}
 
               output_dir = optarg;
           
