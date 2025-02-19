@@ -48,6 +48,9 @@ extern std::string parameter1;
 // Parameter model 2
 extern std::string parameter2;
 
+// The base pair file location
+extern std::string base_pair_file;
+
 
 /** @brief Where the command line options are stored */
 struct args_info
@@ -70,7 +73,9 @@ struct args_info
   const char *dangles_help; /**< @brief Specify the dangle model*/
   const char *parameter1_help; /**< @brief Specify the parameter model for sequence 1*/
   const char *parameter2_help; /**< @brief Specify the parameter model for sequence 2*/
+  const char *basePairFile_help; /**< @brief Uses a list of base pairs for the structure between sequences */
   const char *varna_help; /**< @brief Specify the location for VARNA*/
+  const char *micro_help;   /**< @brief Treat the interaction as a microRNA pairing with an mRNA  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
@@ -90,7 +95,9 @@ struct args_info
   unsigned int dangles_given ;  /**< @brief Whether dangle model was given.  */
   unsigned int parameter1_given; /**< @brief Whether the parameter model for sequence 1 was given.  */
   unsigned int parameter2_given; /**< @brief Whether the parameter model for sequence 2 was given.  */
+  unsigned int basePairFile_given ; /** <@brief whether a parameter file was given */
   unsigned int varna_given; /**< @brief Whether the varna file location was given.  */
+  unsigned int micro_given ;	/**< @brief Whether micro was given.  */
 
   char **inputs ; /**< @brief unnamed options (options without names) */
   unsigned inputs_num ; /**< @brief unnamed options number */

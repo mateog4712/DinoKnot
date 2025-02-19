@@ -39,6 +39,8 @@ std::string parameter1;
 
 std::string parameter2;
 
+std::string base_pair_file;
+
 std::string varna;
 
 static char *package_name = 0;
@@ -49,7 +51,7 @@ const char *args_info_usage = "Usage: DinoKnot [sequence1] [sequence2] [options]
 
 const char *args_info_versiontext = "";
 
-const char *args_info_description = "Read RNA and DNA sequences from cmdline; predict minimum\nfree energy and optimum structure";
+const char *args_info_description = "Read RNA and DNA sequences from cmdline; predict minimum free energy and optimum structure\n Give both sequences in 5'-3' format. Place the smaller sequence on the left.";
 
 const char *args_info_help[] = {
   "  -h, --help             Print help and exit",
@@ -70,7 +72,9 @@ const char *args_info_help[] = {
   "  -d  --dangles          Specify the dangle model to be used",
   "  -P  --parameter1       Specify the parameter model for sequence1", 
   "  -Q  --parameter2       Specify the parameter model for sequence2",
+  "  -B  --basePairFile     Takes a list of indices which will pair between sequences in the format a  b with a being the index in sequence a and b in sequence b",
   "  -v  --varna            Specify the location for the VARNA jar", 
+  "      --micro            Treat the interaction as a microRNA:mRNA interaction and restricting pairing on bases 2-8 in hotspot generation",
 };
 
 static void clear_given (struct args_info *args_info);
@@ -102,7 +106,9 @@ static void init_args_info(struct args_info *args_info)
   args_info->dangles_help = args_info_help[16] ;
   args_info->parameter1_help = args_info_help[17] ;
   args_info->parameter2_help = args_info_help[18] ;
-  args_info->varna_help = args_info_help[19] ;
+  args_info->basePairFile_help = args_info_help[19] ;
+  args_info->varna_help = args_info_help[20] ;
+  args_info->micro_help = args_info_help[21] ;
   
 }
 void
@@ -162,7 +168,9 @@ static void clear_given (struct args_info *args_info)
   args_info->dangles_given = 0;
   args_info->parameter1_given = 0;
   args_info->parameter2_given = 0;
+  args_info->basePairFile_given = 0 ;
   args_info->varna_given = 0;
+  args_info->micro_given = 0 ;
 }
 
 static void clear_args (struct args_info *args_info)
@@ -366,11 +374,13 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         { "dangles",	0, NULL, 'd' },
         { "parameter1",	0, NULL, 'P' },
         { "parameter2",	0, NULL, 'Q' },
+        { "basePairFile",	required_argument, NULL, 'B' },
         { "varna", required_argument,0, 'v' },
+        { "micro",	0, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVp:n:i:o:d:k:l:P:Q:v:", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVp:n:i:o:d:k:l:P:Q:v:B:", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -509,6 +519,17 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           break;
 
+          case 'B':	/* Take in a different Parameter File.  */
+        
+        
+            if (update_arg( 0 , 
+                0 , &(args_info->basePairFile_given),
+                &(local_args_info.basePairFile_given), optarg, 0, 0, ARG_NO,0, 0,"basePairFile", 'B',additional_error)){
+              goto failure;}
+
+              base_pair_file = optarg;
+            break;
+
         case 0:	/* Long option with no short option */
 
           /* Specify sequence 1  */
@@ -593,6 +614,17 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
               goto failure;}
 
               output_dir = optarg;
+          
+          }
+
+          if (strcmp (long_options[option_index].name, "micro") == 0)
+          {
+          
+          
+            if (update_arg( 0 , 
+                 0 , &(args_info->micro_given),
+                &(local_args_info.micro_given), optarg, 0, 0, ARG_NO, 0, 0,"micro", '-', additional_error)){
+              goto failure;}
           
           }
           

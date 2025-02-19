@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <string>
 #include <getopt.h>
+#include <tuple>
 
 #define RNA 0
 #define DNA 1
@@ -109,6 +110,20 @@ void seqtoRNA(std::string &sequence){
     }
 }
 
+void load_base_pairs(std::string file, std::vector< std::tuple<cand_pos_t,cand_pos_t> > &pairs){
+	if(!exists(base_pair_file)) return;
+	std::ifstream in (file);
+	std::string str;
+	while(getline(in,str)){
+		std::istringstream iss(str);
+		cand_pos_t index1; 
+		iss >> index1;
+		cand_pos_t index2;
+		iss >> index2;
+		pairs.push_back(std::make_tuple(index1,index2));
+	}
+}
+
 int main (int argc, char *argv[]) {
 
 	args_info args_info;
@@ -120,38 +135,46 @@ int main (int argc, char *argv[]) {
 
 	int model_1_Type = type_1 <= 2 ? type_1 : 0;
 	int model_2_Type = type_2 <= 2 ? type_2 : 0;
-	std::string inputSequence1 = "";
-	std::string inputSequence2 = "";
-	std::string inputStructure1 = "";
-	std::string inputStructure2 = "";
 
 	std::string inputFile = args_info.input_given ? input_file : "";
+
+	std::string inputSequence1;
+	std::string inputSequence2;
+	std::string inputStructure1;
+	std::string inputStructure2;
 	if(args_info.input_given) get_input(inputFile,inputSequence1,inputSequence2,inputStructure1,inputStructure2);
 
-	if(args_info.sequence1_given) inputSequence1 =  sequence_1;
-	if(args_info.sequence2_given) inputSequence2 =  sequence_2;
-	if(args_info.structure1_given) inputStructure1 = structure_1;
-	if(args_info.structure2_given) inputStructure2 = structure_2;
+	inputSequence1 = (args_info.sequence1_given) ? sequence_1 : "";
+	inputSequence2 = (args_info.sequence2_given) ? sequence_2 : "";
+
 	validateSequence(inputSequence1);
 	validateSequence(inputSequence2);
+	cand_pos_t n1 = inputSequence1.length();
+	cand_pos_t n2 = inputSequence2.length();
+
+	inputStructure1 = (args_info.structure1_given) ? structure_1 : std::string(n1,'.');
+	inputStructure2 = (args_info.structure2_given) ? structure_2 : std::string(n2,'.');
 	if(inputStructure1 != "") validateStructure(inputSequence1,inputStructure1);
 	if(inputStructure2 != "") validateStructure(inputSequence2,inputStructure2);
-
-	if(model_1_Type == 0) seqtoRNA(inputSequence1);
-	if(model_2_Type == 0) seqtoRNA(inputSequence2);
 	
-	std::string seq = inputSequence1 + "XXXXX" + inputSequence2;
+	
 
 				
 	std::string outputDir = args_info.dir_given ? output_dir : "";
 	std::string outputFile = args_info.output_given ? output_file : "";
 	std::string hotspotDir = args_info.h_only_given ? hotspot_dir : "";
 	std::string varnaFile = args_info.varna_given ? varna : "";
+	std::string basepairFile = args_info.basePairFile_given ? base_pair_file : "";
+	
+	std::vector<std::tuple<cand_pos_t,cand_pos_t> > pairs;
+	load_base_pairs(base_pair_file,pairs);
 
 	int max_hotspot = args_info.h_num_given ? hotspot_num : 20;
 	int number_of_suboptimal_structure = args_info.subopt_given ? subopt : 400;
 
 	bool hotspot_only = args_info.h_only_given;
+
+	bool micro = args_info.micro_given;
 
 	int dangle = args_info.dangles_given ? dangle_model : 2;
 
@@ -214,26 +237,37 @@ int main (int argc, char *argv[]) {
 	params2->model_details.dangles = dangle;
 	cmdline_parser_free(&args_info);
 //--------------------------------------------------------------------------------------------------------------------------
-
+	if(micro) args_info.structure1_given = true;
+	if(!pairs.empty()){args_info.structure1_given = true; args_info.structure2_given = true;}
 	std::vector<Hotspot> hotspot_list1;
 	std::vector<Hotspot> hotspot_list2;
-	// Hotspot* hotspot;
-	if(inputStructure1 != ""){
-		Hotspot hotspot(1,inputStructure1.length(),inputStructure1.length()+1);
+	cand_pos_t n_pairs = pairs.size();
+	for(cand_pos_t i = 0; i<n_pairs; ++i){
+		cand_pos_t k = std::get<0>(pairs[i]);
+		inputStructure1[k-1] = 'x';
+	}
+	
+	if(args_info.structure1_given){
+		Hotspot hotspot(1,n1,n1+1);
 		hotspot.set_structure(inputStructure1);
 		hotspot_list1.push_back(hotspot);
 	}else {
 		get_hotspots(inputSequence1, hotspot_list1,max_hotspot,params1);
 	}
 
-	if(inputStructure2 != ""){
-		Hotspot hotspot(1,inputStructure2.length(),inputStructure1.length()+1);
+	if(args_info.structure2_given){
+		Hotspot hotspot(1,n2,n2+1);
 		hotspot.set_structure(inputStructure2);
 		hotspot_list2.push_back(hotspot);
 		
 	} else {
 		get_hotspots(inputSequence2, hotspot_list2,max_hotspot,params2);
 	}
+
+	cmdline_parser_free(&args_info);
+
+	// Generate full sequence after reversal of sequence 1 has occurred
+	std::string seq = inputSequence1 + "XXXXX" + inputSequence2;
 
 	if(hotspot_only){
 		std::ofstream out(hotspotDir.c_str());
@@ -268,6 +302,15 @@ int main (int argc, char *argv[]) {
 				double final_energy = 0;
 				int method_chosen = 1;
 				std::string restricted = hotspot_list1[i].get_structure() + "xxxxx" + hotspot_list2[j].get_structure();
+				if(!pairs.empty()){
+					for(cand_pos_t i = 0; i<n_pairs; ++i){
+						cand_pos_t k = std::get<0>(pairs[i]);
+						cand_pos_t l = std::get<1>(pairs[i]);
+						// restricted[n1-(k)] = '(';
+						restricted[(k-1)] = '(';
+						restricted[(linker_pos+linker_length-1)+(l-1)] = ')';
+					}
+				}
 				
 				std::string structure = Iterative_HFold_interacting(seq,restricted,final_energy,params1,params2,method_chosen);
 
