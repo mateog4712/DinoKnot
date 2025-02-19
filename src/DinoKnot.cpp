@@ -103,6 +103,12 @@ double get_START_HYBRID_PENALTY(int type1, int type2){
 	return 166.0; //when 2 different model old: 58.4511432
 }
 
+void seqtoRNA(std::string &sequence){
+    for (char &c : sequence) {
+      	if (c == 'T') c = 'U';
+    }
+}
+
 int main (int argc, char *argv[]) {
 
 	args_info args_info;
@@ -130,6 +136,9 @@ int main (int argc, char *argv[]) {
 	validateSequence(inputSequence2);
 	if(inputStructure1 != "") validateStructure(inputSequence1,inputStructure1);
 	if(inputStructure2 != "") validateStructure(inputSequence2,inputStructure2);
+
+	if(model_1_Type == 0) seqtoRNA(inputSequence1);
+	if(model_2_Type == 0) seqtoRNA(inputSequence2);
 	
 	std::string seq = inputSequence1 + "XXXXX" + inputSequence2;
 
@@ -163,15 +172,15 @@ int main (int argc, char *argv[]) {
 
 	}
 	else{
-		if(type_1 == 0){
-			std::string file = "src/params/rna_turner2004.par";
+		if(model_1_Type == 0){
+			std::string file = "params/rna_DirksPierce09.par";
 			if(file!=""){
 				vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
 			}
 			params1 = scale_parameters();
 		}
 		else{
-			std::string file = "src/params/dna_matthews2004.par";
+			std::string file = "params/dna_Matthews04.par";
 			if(file!=""){
 				vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
 			}
@@ -186,15 +195,15 @@ int main (int argc, char *argv[]) {
 		params2 = scale_parameters();
 	}
 	else{
-		if(type_2 == 0){
-			std::string file = "src/params/rna_turner2004.par";
+		if(model_2_Type == 0){
+			std::string file = "params/rna_DirksPierce09.par";
 			if(file!=""){
 				vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
 			}
 			params2 = scale_parameters();
 		}
 		else{
-			std::string file = "src/params/dna_matthews2004.par";
+			std::string file = "params/dna_Matthews04.par";
 			if(file!=""){
 				vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
 			}
