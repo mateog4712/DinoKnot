@@ -9,6 +9,7 @@
 // a simple driver for HFold
 #include <sys/stat.h>
 #include <fstream>
+#include <sstream>
 #include <iostream>
 #include <algorithm>
 #include <stdio.h>
