@@ -134,8 +134,8 @@ int main (int argc, char *argv[]) {
 	exit(1);
 	}
 
-	int model_1_Type = type_1 <= 2 ? type_1 : 0;
-	int model_2_Type = type_2 <= 2 ? type_2 : 0;
+	int model_1_Type = type_1;
+	int model_2_Type = type_2;
 
 	std::string inputFile = args_info.input_given ? input_file : "";
 
@@ -147,6 +147,8 @@ int main (int argc, char *argv[]) {
 
 	inputSequence1 = (args_info.sequence1_given) ? sequence_1 : "";
 	inputSequence2 = (args_info.sequence2_given) ? sequence_2 : "";
+	if(model_1_Type == 0) seqtoRNA(inputSequence1);
+	if(model_2_Type == 0) seqtoRNA(inputSequence2);
 
 	validateSequence(inputSequence1);
 	validateSequence(inputSequence2);
@@ -171,7 +173,7 @@ int main (int argc, char *argv[]) {
 	load_base_pairs(base_pair_file,pairs);
 
 	int max_hotspot = args_info.h_num_given ? hotspot_num : 20;
-	int number_of_suboptimal_structure = args_info.subopt_given ? subopt : 400;
+	int number_of_suboptimal_structure = args_info.subopt_given ? subopt : 100;
 
 	bool hotspot_only = args_info.h_only_given;
 
@@ -239,14 +241,22 @@ int main (int argc, char *argv[]) {
 	cmdline_parser_free(&args_info);
 //--------------------------------------------------------------------------------------------------------------------------
 	if(micro) args_info.structure1_given = true;
-	if(!pairs.empty()){args_info.structure1_given = true; args_info.structure2_given = true;}
+	if(!pairs.empty()){
+		args_info.structure1_given = true; 
+		args_info.structure2_given = true;
+		inputStructure1 = std::string(n1,'.');
+		inputStructure2 = std::string(n2,'.');
+		int npairs = pairs.size();
+		for(cand_pos_t i = 0; i<npairs; ++i){
+			cand_pos_t k = std::get<0>(pairs[i]);
+			cand_pos_t l = std::get<1>(pairs[i]);
+			inputStructure1[(k-1)] = '(';
+			inputStructure2[(l-1)] = ')';
+		}
+				
+	}
 	std::vector<Hotspot> hotspot_list1;
 	std::vector<Hotspot> hotspot_list2;
-	cand_pos_t n_pairs = pairs.size();
-	for(cand_pos_t i = 0; i<n_pairs; ++i){
-		cand_pos_t k = std::get<0>(pairs[i]);
-		inputStructure1[k-1] = 'x';
-	}
 	
 	if(args_info.structure1_given){
 		Hotspot hotspot(1,n1,n1+1);
@@ -303,15 +313,6 @@ int main (int argc, char *argv[]) {
 				double final_energy = 0;
 				int method_chosen = 1;
 				std::string restricted = hotspot_list1[i].get_structure() + "xxxxx" + hotspot_list2[j].get_structure();
-				if(!pairs.empty()){
-					for(cand_pos_t i = 0; i<n_pairs; ++i){
-						cand_pos_t k = std::get<0>(pairs[i]);
-						cand_pos_t l = std::get<1>(pairs[i]);
-						// restricted[n1-(k)] = '(';
-						restricted[(k-1)] = '(';
-						restricted[(linker_pos+linker_length-1)+(l-1)] = ')';
-					}
-				}
 				
 				std::string structure = Iterative_HFold_interacting(seq,restricted,final_energy,params1,params2,method_chosen);
 
