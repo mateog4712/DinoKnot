@@ -179,7 +179,7 @@ int main (int argc, char *argv[]) {
 
 	bool micro = args_info.micro_given;
 
-	int dangle = args_info.dangles_given ? dangle_model : 2;
+	int dangle = args_info.dangles_given ? dangle_model : 1;
 
 	start_hybrid_penalty = args_info.pen_given ? hybrid_pen : get_START_HYBRID_PENALTY(model_1_Type,model_2_Type);
 
