@@ -307,7 +307,6 @@ int main (int argc, char *argv[]) {
 		cand_pos_t size1 = hotspot_list1.size();
 		cand_pos_t size2 = hotspot_list2.size();
 
-		std::cout << size1 << "\t" << size2 << std::endl;
 		for(int i =0; i < size1; i++){
 			for(int j = 0; j < size2; j++){
 				
