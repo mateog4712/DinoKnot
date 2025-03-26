@@ -335,8 +335,10 @@ int main (int argc, char *argv[]) {
 		}
 
 		if(varnaFile != "" && exists(varnaFile)){
-			std::string command = "java -cp " +  varnaFile +  " fr.orsay.lri.varna.applications.VARNAcmd -algorithm line -resolution 10.0 -basesStyle1 \"fill=##0000FF\" -basesStyle2 \"fill=#0000FF\" -basesStyle3 \"fill=#FFFF00\" -applyBasesStyle1on \"1-" + std::to_string(linker_pos-1) + "\" -applyBasesStyle2on \"" +  std::to_string(linker_pos) + "-" +  std::to_string(linker_pos+linker_length) + "\" -applyBasesStyle3on \"" +  std::to_string(linker_pos+linker_length+1) + "-" +  std::to_string(n) + "\" -sequenceDBN \"" + seq + "\" -structureDBN \"" + result_list[0].get_final_structure() + "\" -o \"file.png\"";
-			system(command.c_str());
+			for(cand_pos_t i = 0; i < number_of_output; ++i){
+				std::string command = "java -cp " +  varnaFile +  " fr.orsay.lri.varna.applications.VARNAcmd -algorithm line -resolution 10.0 -basesStyle1 \"fill=##0000FF\" -basesStyle2 \"fill=#0000FF\" -basesStyle3 \"fill=#FFFF00\" -applyBasesStyle1on \"1-" + std::to_string(linker_pos-1) + "\" -applyBasesStyle2on \"" +  std::to_string(linker_pos) + "-" +  std::to_string(linker_pos+linker_length) + "\" -applyBasesStyle3on \"" +  std::to_string(linker_pos+linker_length+1) + "-" +  std::to_string(n) + "\" -sequenceDBN \"" + seq + "\" -structureDBN \"" + result_list[i].get_final_structure() + "\"" + " -o \"varna/file" + std::to_string(i) + ".png\"";
+				system(command.c_str());
+			}
 		}
 
 		//Mateo 7/19/2023
