@@ -238,7 +238,6 @@ int main (int argc, char *argv[]) {
 	}
 	params1->model_details.dangles = dangle;
 	params2->model_details.dangles = dangle;
-	cmdline_parser_free(&args_info);
 //--------------------------------------------------------------------------------------------------------------------------
 	if(micro) args_info.structure1_given = true;
 	if(!pairs.empty()){
@@ -307,6 +306,8 @@ int main (int argc, char *argv[]) {
 		cand_pos_t n = seq.length();
 		cand_pos_t size1 = hotspot_list1.size();
 		cand_pos_t size2 = hotspot_list2.size();
+
+		std::cout << size1 << "\t" << size2 << std::endl;
 		for(int i =0; i < size1; i++){
 			for(int j = 0; j < size2; j++){
 				
@@ -348,13 +349,13 @@ int main (int argc, char *argv[]) {
 				exit(EXIT_FAILURE);
 			}
 
-			std::cout << "Seq:          " << seq << std::endl;
-			std::cout << "Restricted_" << 0 << ": " << result_list[0].get_restricted() << std::endl;;
-			std::cout << "Result_" << 0 << ":     " << result_list[0].get_final_structure() << " (" << result_list[0].get_final_energy() << ")" << std::endl;
+			out << "Seq:          " << seq << std::endl;
+			out << "Restricted_" << 0 << ": " << result_list[0].get_restricted() << std::endl;;
+			out << "Result_" << 0 << ":     " << result_list[0].get_final_structure() << " (" << result_list[0].get_final_energy() << ")" << std::endl;
 			for (int i=1; i < number_of_output; i++) {
 				if(result_list[i].get_final_structure() == result_list[i-1].get_final_structure()) continue;
-				std::cout << "Restricted_" << i << ": " << result_list[i].get_restricted() << std::endl;;
-				std::cout << "Result_" << i << ":     " << result_list[i].get_final_structure() << " (" << result_list[i].get_final_energy() << ")" << std::endl;
+				out << "Restricted_" << i << ": " << result_list[i].get_restricted() << std::endl;;
+				out << "Result_" << i << ":     " << result_list[i].get_final_structure() << " (" << result_list[i].get_final_energy() << ")" << std::endl;
 			}
 			out.close();
 		}
