@@ -111,6 +111,13 @@ void seqtoRNA(std::string &sequence){
     }
 }
 
+void can_pair(char a, char b){
+	if(!((a == 'A' && b == 'U') || (a == 'C' && b == 'G') || (a == 'G' && b == 'C') || (a == 'G' && b == 'U') || (a == 'U' && b == 'A') || (a == 'U' && b== 'G'))){
+		printf("Error, not a valid pair: %c and %c\n",a,b);
+		exit(0);
+	}
+}
+
 void load_base_pairs(std::string file, std::vector< std::tuple<cand_pos_t,cand_pos_t> > &pairs){
 	if(!exists(base_pair_file)) return;
 	std::ifstream in (file);
@@ -251,6 +258,7 @@ int main (int argc, char *argv[]) {
 			cand_pos_t l = std::get<1>(pairs[i]);
 			inputStructure1[(k-1)] = '(';
 			inputStructure2[(l-1)] = ')';
+			can_pair(inputSequence1[(k-1)], inputSequence2[(l-1)]);
 		}
 				
 	}
