@@ -215,7 +215,7 @@ std::string method2(std::string &seq, std::string &restricted, energy_t &method2
 	else return pk_only_output;
 }
 
-std::string Iterative_HFold_interacting (std::string seq,std::string res, double &en, vrna_param_s *params1, vrna_param_s *params2, int &method_chosen){
+std::string Iterative_HFold_interacting (std::string seq,std::string res, double &en, vrna_param_s *params1, vrna_param_s *params2, int &method_chosen, bool hard){
 
 	// Iterate through all hotspots or the single given input structure
 	energy_t method1_energy = INF;
@@ -234,49 +234,51 @@ std::string Iterative_HFold_interacting (std::string seq,std::string res, double
 	method_chosen = 1;
 	}
 
-	// //Method2
-	std::string method2_structure = method2(seq,res,method2_energy,params1,params2);
-	if(method2_energy < final_en){
-	final_en = method2_energy;
-	final_structure=method2_structure;
-	method_chosen = 2;
-	}
+	if(!hard){
+		//Method2
+		std::string method2_structure = method2(seq,res,method2_energy,params1,params2);
+		if(method2_energy < final_en){
+		final_en = method2_energy;
+		final_structure=method2_structure;
+		method_chosen = 2;
+		}
 
-	// //Method3
-	std::string pk_free = hfold(seq,res,method3_energy,true,false,params1,params2);
-	std::string relaxed = obtainRelaxedStems(res,pk_free);
-	cand_pos_t n = res.length();
-	for(cand_pos_t i =0; i< n;++i) if(res[i] == 'x') relaxed[i] = 'x';
-	std::string method3_structure = method2(seq,relaxed,method3_energy,params1,params2);
-	if(method3_energy < final_en){
-		final_en = method3_energy;
-		final_structure=method3_structure;
-	method_chosen = 3;
-	}
+		//Method3
+		std::string pk_free = hfold(seq,res,method3_energy,true,false,params1,params2);
+		std::string relaxed = obtainRelaxedStems(res,pk_free);
+		cand_pos_t n = res.length();
+		for(cand_pos_t i =0; i< n;++i) if(res[i] == 'x') relaxed[i] = 'x';
+		std::string method3_structure = method2(seq,relaxed,method3_energy,params1,params2);
+		if(method3_energy < final_en){
+			final_en = method3_energy;
+			final_structure=method3_structure;
+		method_chosen = 3;
+		}
 
-	// //Method4
-	std::vector< std::pair<int,int> > disjoint_substructure_index;
-	find_disjoint_substructure(res,disjoint_substructure_index);
-	std::string disjoint_structure = res;
-	for(auto current_substructure_index : disjoint_substructure_index){
-		cand_pos_t i = current_substructure_index.first;
-		cand_pos_t j = current_substructure_index.second;
-		energy_t energy = INF;
+		//Method4
+		std::vector< std::pair<int,int> > disjoint_substructure_index;
+		find_disjoint_substructure(res,disjoint_substructure_index);
+		std::string disjoint_structure = res;
+		for(auto current_substructure_index : disjoint_substructure_index){
+			cand_pos_t i = current_substructure_index.first;
+			cand_pos_t j = current_substructure_index.second;
+			energy_t energy = INF;
 
-		std::string subsequence = seq.substr(i,j-i+1);
-		std::string substructure = res.substr(i,j-i+1);
+			std::string subsequence = seq.substr(i,j-i+1);
+			std::string substructure = res.substr(i,j-i+1);
 
-		std::string pk_free = hfold(subsequence,substructure,energy,true,false,params1,params2);
-		std::string relaxed = obtainRelaxedStems(substructure,pk_free);
-		cand_pos_t sub_n = substructure.length();
-	 	for(int i =0; i< sub_n;++i) if(substructure[i] == 'x') relaxed[i] = 'x';
-		disjoint_structure.replace(i,j-i+1,relaxed);
-	}
-	std::string method4_structure = method2(seq,disjoint_structure,method4_energy,params1,params2);
-	if(method4_energy < final_en){
-		final_en = method4_energy;
-		final_structure=method4_structure;
-	method_chosen = 4;
+			std::string pk_free = hfold(subsequence,substructure,energy,true,false,params1,params2);
+			std::string relaxed = obtainRelaxedStems(substructure,pk_free);
+			cand_pos_t sub_n = substructure.length();
+			for(int i =0; i< sub_n;++i) if(substructure[i] == 'x') relaxed[i] = 'x';
+			disjoint_structure.replace(i,j-i+1,relaxed);
+		}
+		std::string method4_structure = method2(seq,disjoint_structure,method4_energy,params1,params2);
+		if(method4_energy < final_en){
+			final_en = method4_energy;
+			final_structure=method4_structure;
+		method_chosen = 4;
+		}
 	}
 
 	double final_energy = final_en/100.0;

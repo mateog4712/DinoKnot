@@ -75,6 +75,7 @@ const char *args_info_help[] = {
   "  -B  --basePairFile     Takes a list of indices which will pair between sequences in the format a  b with a being the index in sequence a and b in sequence b",
   "  -v  --varna            Specify the location for the VARNA jar", 
   "      --micro            Treat the interaction as a microRNA:mRNA interaction and restricting pairing on bases 2-8 in hotspot generation",
+  "      --hard             Treat the input structure as a hard constraint and only use method1 (HFold) for structure determination",
 };
 
 static void clear_given (struct args_info *args_info);
@@ -109,6 +110,7 @@ static void init_args_info(struct args_info *args_info)
   args_info->basePairFile_help = args_info_help[19] ;
   args_info->varna_help = args_info_help[20] ;
   args_info->micro_help = args_info_help[21] ;
+  args_info->hard_help = args_info_help[22] ;
   
 }
 void
@@ -171,6 +173,7 @@ static void clear_given (struct args_info *args_info)
   args_info->basePairFile_given = 0 ;
   args_info->varna_given = 0;
   args_info->micro_given = 0 ;
+  args_info->hard_given = 0 ;
 }
 
 static void clear_args (struct args_info *args_info)
@@ -377,6 +380,7 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         { "basePairFile",	required_argument, NULL, 'B' },
         { "varna", required_argument,0, 'v' },
         { "micro",	0, NULL, 0 },
+        { "hard",	0, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
@@ -624,6 +628,17 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
             if (update_arg( 0 , 
                  0 , &(args_info->micro_given),
                 &(local_args_info.micro_given), optarg, 0, 0, ARG_NO, 0, 0,"micro", '-', additional_error)){
+              goto failure;}
+          
+          }
+
+          if (strcmp (long_options[option_index].name, "hard") == 0)
+          {
+          
+          
+            if (update_arg( 0 , 
+                 0 , &(args_info->hard_given),
+                &(local_args_info.hard_given), optarg, 0, 0, ARG_NO, 0, 0,"hard", '-', additional_error)){
               goto failure;}
           
           }

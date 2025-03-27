@@ -76,6 +76,7 @@ struct args_info
   const char *basePairFile_help; /**< @brief Uses a list of base pairs for the structure between sequences */
   const char *varna_help; /**< @brief Specify the location for VARNA*/
   const char *micro_help;   /**< @brief Treat the interaction as a microRNA pairing with an mRNA  */
+  const char *hard_help;   /**< @brief Treat the input structure as a hard constraint and only use method 1 (HFold)  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
@@ -98,6 +99,7 @@ struct args_info
   unsigned int basePairFile_given ; /** <@brief whether a parameter file was given */
   unsigned int varna_given; /**< @brief Whether the varna file location was given.  */
   unsigned int micro_given ;	/**< @brief Whether micro was given.  */
+  unsigned int hard_given ;	/**< @brief Whether hard was given.  */
 
   char **inputs ; /**< @brief unnamed options (options without names) */
   unsigned inputs_num ; /**< @brief unnamed options number */

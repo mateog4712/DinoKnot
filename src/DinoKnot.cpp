@@ -186,6 +186,8 @@ int main (int argc, char *argv[]) {
 
 	bool micro = args_info.micro_given;
 
+	bool hard = args_info.hard_given;
+
 	int dangle = args_info.dangles_given ? dangle_model : 1;
 
 	start_hybrid_penalty = args_info.pen_given ? hybrid_pen : get_START_HYBRID_PENALTY(model_1_Type,model_2_Type);
@@ -322,7 +324,7 @@ int main (int argc, char *argv[]) {
 				int method_chosen = 1;
 				std::string restricted = hotspot_list1[i].get_structure() + "xxxxx" + hotspot_list2[j].get_structure();
 				
-				std::string structure = Iterative_HFold_interacting(seq,restricted,final_energy,params1,params2,method_chosen);
+				std::string structure = Iterative_HFold_interacting(seq,restricted,final_energy,params1,params2,method_chosen,hard);
 
 				Result result(seq,restricted,hotspot_list1[i].get_energy()+hotspot_list2[i].get_energy(),structure,final_energy,method_chosen);
 				result_list.push_back(result);
