@@ -110,6 +110,7 @@ static void init_args_info(struct args_info *args_info)
   args_info->basePairFile_help = args_info_help[18] ;
   args_info->varna_help = args_info_help[19] ;
   args_info->micro_help = args_info_help[20] ;
+  args_info->hard_help = args_info_help[21] ;
   
 }
 void
