@@ -60,7 +60,7 @@ void find_disjoint_substructure(std::string structure, std::vector< std::pair<in
  * @param p_table Restricted array
  */
 void detect_pairs(const std::string &structure, std::vector<cand_pos_t> &p_table){
-	cand_pos_t i, j, count = 0, length = structure.length();
+	cand_pos_t i, j, length = structure.length();
 	std::vector<cand_pos_t>  pairs;
 	pairs.push_back(length);
 
@@ -71,14 +71,12 @@ void detect_pairs(const std::string &structure, std::vector<cand_pos_t> &p_table
 			p_table[i] = -2;
 		if (structure[i] == ')'){
 			pairs.push_back(i);
-			count++;
 		}
 		if (structure[i] == '('){
 			j = pairs[pairs.size()-1];
 			pairs.erase(pairs.end()-1);
 			p_table[i] = j;
 			p_table[j] = i;
-			count--;
 		}
 	}
 	pairs.pop_back();

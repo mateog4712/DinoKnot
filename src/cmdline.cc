@@ -91,26 +91,25 @@ static void init_args_info(struct args_info *args_info)
 {
   args_info->help_help = args_info_help[0] ;
   args_info->version_help = args_info_help[1] ;
-  args_info->sequence1_help = args_info_help[3] ;
-  args_info->structure1_help = args_info_help[4] ;
-  args_info->sequence2_help = args_info_help[5] ;
-  args_info->structure2_help = args_info_help[6] ;
-  args_info->type1_help = args_info_help[7] ;
-  args_info->type2_help = args_info_help[8] ;
-  args_info->pen_help = args_info_help[9] ;
-  args_info->subopt_help = args_info_help[10] ;
-  args_info->input_help = args_info_help[11] ;
-  args_info->output_help = args_info_help[12] ;
-  args_info->dir_help = args_info_help[13] ;
-  args_info->h_num_help = args_info_help[14] ;
-  args_info->h_only_help = args_info_help[15] ;
-  args_info->dangles_help = args_info_help[16] ;
-  args_info->parameter1_help = args_info_help[17] ;
-  args_info->parameter2_help = args_info_help[18] ;
-  args_info->basePairFile_help = args_info_help[19] ;
-  args_info->varna_help = args_info_help[20] ;
-  args_info->micro_help = args_info_help[21] ;
-  args_info->hard_help = args_info_help[22] ;
+  args_info->sequence1_help = args_info_help[2] ;
+  args_info->structure1_help = args_info_help[3] ;
+  args_info->sequence2_help = args_info_help[4] ;
+  args_info->structure2_help = args_info_help[5] ;
+  args_info->type1_help = args_info_help[6] ;
+  args_info->type2_help = args_info_help[7] ;
+  args_info->pen_help = args_info_help[8] ;
+  args_info->subopt_help = args_info_help[9] ;
+  args_info->input_help = args_info_help[10] ;
+  args_info->output_help = args_info_help[11] ;
+  args_info->dir_help = args_info_help[12] ;
+  args_info->h_num_help = args_info_help[13] ;
+  args_info->h_only_help = args_info_help[14] ;
+  args_info->dangles_help = args_info_help[15] ;
+  args_info->parameter1_help = args_info_help[16] ;
+  args_info->parameter2_help = args_info_help[17] ;
+  args_info->basePairFile_help = args_info_help[18] ;
+  args_info->varna_help = args_info_help[19] ;
+  args_info->micro_help = args_info_help[20] ;
   
 }
 void
