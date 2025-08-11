@@ -307,23 +307,23 @@ void pseudo_loop::compute_VP_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tre
 	//branchs:
 	// 1) inArc(i) and NOT_inArc(j)
 	if((tree.tree[i].parent->index) > 0 && (tree.tree[j].parent->index) < (tree.tree[i].parent->index) && Bp_ij >= 0 && B_ij >= 0 && bp_ij < 0){
-		energy_t WI_ipus1_BPminus = get_WI(i+1,Bp_ij - 1) ;
-		energy_t WI_Bplus_jminus = get_WI(B_ij + 1,j-1);
+		energy_t WI_ipus1_BPminus = get_WI(i+1,Bp_ij-1) ;
+		energy_t WI_Bplus_jminus = get_WI(B_ij+1,j-1);
 		m1 =   WI_ipus1_BPminus + WI_Bplus_jminus;
 	}
 
 	// 2) NOT_inArc(i) and inArc(j)
 	if ((tree.tree[i].parent->index) < (tree.tree[j].parent->index) && (tree.tree[j].parent->index) > 0 && b_ij>= 0 && bp_ij >= 0 && Bp_ij < 0){
-		energy_t WI_i_plus_b_minus = get_WI(i+1,b_ij - 1);
-		energy_t WI_bp_plus_j_minus = get_WI(bp_ij + 1,j-1);
+		energy_t WI_i_plus_b_minus = get_WI(i+1,b_ij-1);
+		energy_t WI_bp_plus_j_minus = get_WI(bp_ij+1,j-1);
 		m2 = WI_i_plus_b_minus + WI_bp_plus_j_minus;
 	}
 
 	// 3) inArc(i) and inArc(j)
 	if((tree.tree[i].parent->index) > 0 && (tree.tree[j].parent->index) > 0 && Bp_ij >= 0 && B_ij >= 0  && b_ij >= 0 && bp_ij>= 0){
-		energy_t WI_i_plus_Bp_minus = get_WI(i+1,Bp_ij - 1);
-		energy_t WI_B_plus_b_minus = get_WI(B_ij + 1,b_ij - 1);
-		energy_t WI_bp_plus_j_minus = get_WI(bp_ij +1,j - 1);
+		energy_t WI_i_plus_Bp_minus = get_WI(i+1,Bp_ij-1);
+		energy_t WI_B_plus_b_minus = get_WI(B_ij+1,b_ij-1);
+		energy_t WI_bp_plus_j_minus = get_WI(bp_ij+1,j-1);
 		m3 = WI_i_plus_Bp_minus + WI_B_plus_b_minus + WI_bp_plus_j_minus;
 	}
 
@@ -383,6 +383,8 @@ void pseudo_loop::compute_VP_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tre
 
 	//finding the min energy
 	energy_t vp_h = std::min({m1,m2,m3});
+	// A pseudoknot "hairpin" should incur a hybrid penalty for initializing
+	if(is_cross_model(i,j)) vp_h += start_hybrid_penalty;
 	energy_t vp_iloop = std::min({m4,m5});
 	energy_t vp_split = std::min({m6,m7,m8,m9});
 	energy_t min = std::min({vp_h,vp_iloop,vp_split});
@@ -904,7 +906,8 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 				}
 
 				// case 3
-				energy_t temp = get_VP(i,j) + PB_penalty;
+				energy_t temp = get_VP(i,j);
+				if(!is_cross_model(i,j)) temp += PB_penalty;
 				if (temp < min){
 					min = temp;
 					best_row = 3;
@@ -999,6 +1002,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 					energy_t WI_ipus1_BPminus = get_WI(i+1,Bp_ij - 1) ;
 					energy_t WI_Bplus_jminus = get_WI(B_ij + 1,j-1);
 					tmp =   WI_ipus1_BPminus + WI_Bplus_jminus;
+					if(is_cross_model(i,j)) tmp += start_hybrid_penalty;
 					if (tmp < min){
 						min = tmp;
 						best_row = 1;
@@ -1011,6 +1015,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 					energy_t WI_i_plus_b_minus = get_WI(i+1,b_ij - 1);
 					energy_t WI_bp_plus_j_minus = get_WI(bp_ij + 1,j-1);
 					tmp = WI_i_plus_b_minus + WI_bp_plus_j_minus;
+					if(is_cross_model(i,j)) tmp += start_hybrid_penalty;
 					if (tmp < min){
 						min = tmp;
 						best_row = 2;
@@ -1024,6 +1029,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 					energy_t WI_B_plus_b_minus = get_WI(B_ij + 1,b_ij - 1);
 					energy_t WI_bp_plus_j_minus = get_WI(bp_ij +1,j - 1);
 					tmp = WI_i_plus_Bp_minus + WI_B_plus_b_minus + WI_bp_plus_j_minus;
+					if(is_cross_model(i,j)) tmp += start_hybrid_penalty;
 					if (tmp < min){
 						min = tmp;
 						best_row = 3;

@@ -66,6 +66,7 @@ class s_energy_matrix
         energy_t get_energy_WM (cand_pos_t i, cand_pos_t j) { if (i>=j) return INF; cand_pos_t ij = index[i]+j-i; return WM[ij]; }
         energy_t get_energy_WMv (cand_pos_t i, cand_pos_t j) { if (i>=j) return INF; cand_pos_t ij = index[i]+j-i; return WMv[ij]; }
         energy_t get_energy_WMp (cand_pos_t i, cand_pos_t j) { if (i>=j) return INF; cand_pos_t ij = index[i]+j-i; return WMp[ij]; }
+        energy_t get_energy_VMprime (cand_pos_t i, cand_pos_t j) { if (i>=j) return INF; cand_pos_t ij = index[i]+j-i; return VMprime[ij]; }
         // return the value at V(i,j)
 
         char get_type (cand_pos_t i, cand_pos_t j) { cand_pos_t ij = index[i]+j-i; return nodes[ij].type; }
@@ -78,8 +79,10 @@ class s_energy_matrix
         energy_t compute_stack(cand_pos_t i, cand_pos_t j, const paramT *params);
         energy_t compute_internal_restricted_emodel(cand_pos_t i, cand_pos_t j, const paramT *params, std::vector<int> &up);
         energy_t compute_int_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l, const paramT *params);
+        energy_t compute_energy_VMc_restricted_emodel (cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 
         void compute_energy_WM_restricted_emodel (cand_pos_t i, cand_pos_t j, sparse_tree &tree, std::vector<energy_t> &WMB);
+        void compute_VMprime(cand_pos_t i, cand_pos_t j, sparse_tree &tree, std::vector<energy_t> &WMB);
         energy_t compute_energy_VM_restricted_emodel (cand_pos_t i, cand_pos_t j, sparse_tree &tree, paramT* params);
         energy_t E_MLStem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij1,const energy_t& vi1j1,const short* S, paramT* params, paramT *params2,cand_pos_t i, cand_pos_t j, const  cand_pos_t& n, std::vector<Node> &tree);
         energy_t E_MbLoop(const energy_t WM2ij, const energy_t WM2ip1j, const energy_t WM2ijm1, const energy_t WM2ip1jm1, const short* S, paramT* params, cand_pos_t i, cand_pos_t j, std::vector<Node> &tree);
@@ -87,17 +90,16 @@ class s_energy_matrix
 
     // better to have protected variable rather than private, it's necessary for Hfold
     protected:
-    //private:
 
         std::vector<energy_t> WM;
         std::vector<energy_t> WMv;
         std::vector<energy_t> WMp;
+        std::vector<energy_t> VMprime;
 
        
         std::string seq_;
         cand_pos_t n;              // sequence length
         std::vector<cand_pos_t> index;
-        // int *index;                // an array with indexes, such that we don't work with a 2D array, but with a 1D array of length (n*(n+1))/2
         std::vector<free_energy_node> nodes;   // the free energy and type (i.e. base pair closing a hairpin loops, stacked pair etc), for each i and j
 };
 
