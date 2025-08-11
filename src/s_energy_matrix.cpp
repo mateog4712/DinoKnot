@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <iostream>
 #include <string>
 #include <algorithm>
 
@@ -52,7 +53,6 @@ s_energy_matrix::s_energy_matrix (std::string seq, cand_pos_t length, short *S, 
     for (cand_pos_t i=2; i <= n; i++){
         index[i] = index[i-1]+(n+1)-i+1;
 	}
-
 	WM.resize(total_length,INF);
 	WMv.resize(total_length,INF);
 	WMp.resize(total_length,INF);
@@ -84,6 +84,7 @@ s_energy_matrix::s_energy_matrix (std::string seq, cand_pos_t length, short *S, 
 	WM.resize(total_length,INF);
 	WMv.resize(total_length,INF);
 	WMp.resize(total_length,INF);
+	VMprime.resize(total_length,INF);
     // this array holds V(i,j), and what (i,j) encloses: hairpin loop, stack pair, internal loop or multi-loop
 	nodes.resize(total_length);
 }
@@ -191,8 +192,6 @@ energy_t s_energy_matrix::E_MLStem(const energy_t& vij,const energy_t& vi1j,cons
 /**
 * @brief Computes the multiloop V contribution. This gives back essentially VM(i,j).
 * 
-* Added plus 1 to all S's as I haven't changed it over to 1->n from 0->n-1
-* 
 */
 energy_t s_energy_matrix::E_MbLoop(const energy_t WM2ij, const energy_t WM2ip1j, const energy_t WM2ijm1, const energy_t WM2ip1jm1, const short* S, paramT* params, cand_pos_t i, cand_pos_t j, std::vector<Node> &tree){
 
@@ -298,8 +297,8 @@ energy_t s_energy_matrix::E_MbLoop(const energy_t WM2ij, const energy_t WM2ip1j,
 
 void s_energy_matrix::compute_WMv_WMp_emodel(cand_pos_t i, cand_pos_t j, energy_t WMB, std::vector<Node> &tree){
 	if(j-i+1<4) return;
-	cand_pos_t ij = index[(i)]+(j)-(i);
-	cand_pos_t ijminus1 = index[(i)]+(j)-1-(i);
+	cand_pos_t ij = index[i]+j-i;
+	cand_pos_t ijminus1 = index[i]+(j-1)-i;
 
 	WMv[ij] = E_MLStem(get_energy(i,j),get_energy(i+1,j),get_energy(i,j-1),get_energy(i+1,j-1),S_,params_,params2_,i,j,n,tree);
 	WMp[ij] = WMB+PSM_penalty+b_penalty;
@@ -354,11 +353,7 @@ energy_t s_energy_matrix::compute_energy_VM_restricted_emodel (cand_pos_t i, can
     //also prevents i and j to cross each other
     if(seq_[i+1] == 'X' && seq_[j-1] == 'X') return min;
         
-       
-	// i--;
-	// j--;
-    for (cand_pos_t k = i+1; k <= j-3; ++k)
-    {	
+    for (cand_pos_t k = i+1; k <= j-3; ++k){	
 		//make sure the splitting point k for WM is not an X, so the X will be handled in either WM[i+1,k-1] or WM[k,j-1]
 		if(seq_[k] == 'X') continue;
     	energy_t WM2ij = get_energy_WM(i+1,k-1) + get_energy_WMv(k,j-1);
@@ -396,6 +391,20 @@ energy_t s_energy_matrix::HairpinE_emodel(const std::string& seq, const short* S
 	if(is_cross_model(i,j)) return 0;
 
 	return E_Hairpin(j-i-1,ptype_closing,S1[i+1],S1[j-1],&seq.c_str()[i-1], const_cast<paramT *>(params));
+}
+
+void s_energy_matrix::compute_VMprime(cand_pos_t i, cand_pos_t j, sparse_tree &tree, std::vector<energy_t> &WMB){
+	
+	cand_pos_t ij = index[i]+j-i;
+	cand_pos_t ijm1 = index[i]+(j-1)-i;
+	energy_t m1 = INF,m2=INF,m3=INF;
+	for (cand_pos_t k = i+4; k <= j-3; ++k){
+		cand_pos_t kj = index[k]+j-k;
+		m1 = std::min(m1,get_energy_WM(i,k-1) + E_MLStem(get_energy(k,j),get_energy(k+1,j),get_energy(k,j-1),get_energy(k+1,j-1),S_,params_,params2_,k,j,n,tree.tree));
+		m2 = std::min(m2,get_energy_WM(i,k-1) + WMB[kj] + PSM_penalty + b_penalty);
+	}
+	if (j>linker_pos+linker_length && tree.tree[j].pair <= -1) m3 = VMprime[ijm1] + params2_->MLbase;
+	VMprime[ij] =std::min({m1,m2,m3});
 }
 
 /**
@@ -450,6 +459,21 @@ energy_t s_energy_matrix::compute_int_emodel(cand_pos_t i, cand_pos_t j, cand_po
     return E_IntLoop(k-i-1-skip1,j-l-1-skip2,ptype_closing,rtype[pair[S_[k]][S_[l]]],S1_[i+1],S1_[j-1],S1_[k-1],S1_[l+1],const_cast<paramT *>(params)) + get_energy(k,l);
 }
 
+energy_t s_energy_matrix::compute_energy_VMc_restricted_emodel (cand_pos_t i, cand_pos_t j, sparse_tree &tree){
+	energy_t min = INF;
+	for (cand_pos_t k = i+2; k <= j-3; ++k){	
+
+		if(seq_[k] == 'X') continue;
+    	energy_t WM2ij = get_energy_VMprime(i+1,k-1) + get_energy_WM(k,j-1);
+        energy_t WM2ip1j = get_energy_VMprime(i+2,k-1) + get_energy_WM(k,j-1);
+        energy_t WM2ijm1 = get_energy_VMprime(i+1,k-1) + get_energy_WM(k,j-2);
+        energy_t WM2ip1jm1 = get_energy_VMprime(i+2,k-1) + get_energy_WM(k,j-2);
+
+		min = std::min(min,emodel_energy_function(i,j,E_MbLoop(WM2ij,WM2ip1j,WM2ijm1,WM2ip1jm1,S_,params_,i,j,tree.tree),E_MbLoop(WM2ij,WM2ip1j,WM2ijm1,WM2ip1jm1,S_,params2_,i,j,tree.tree)));
+	}
+	return min;
+}
+
 void s_energy_matrix::compute_energy_restricted_emodel (cand_pos_t i, cand_pos_t j, sparse_tree &tree)
 // compute the V(i,j) value, if the structure must be restricted
 {
@@ -466,22 +490,34 @@ void s_energy_matrix::compute_energy_restricted_emodel (cand_pos_t i, cand_pos_t
 
     const bool unpaired = (tree.tree[i].pair<-1 && tree.tree[j].pair<-1);
 	const bool paired = (tree.tree[i].pair == j && tree.tree[j].pair == i);
+	const bool cross_model = is_cross_model(i,j);
     if (paired || unpaired)    // if i and j can pair
     {
         bool canH = !(tree.up[j-1]<(j-i-1));
-        if(canH) {
-			energy_t en = emodel_energy_function(i,j,HairpinE_emodel(seq_,S_,S1_,params_,i,j),HairpinE_emodel(seq_,S_,S1_,params2_,i,j));
-			
-			if( is_cross_model(i,j) ) {    // If cross model 
-                   en += start_hybrid_penalty;  
+		if(cross_model){
+			if(canH) {
+				energy_t en = emodel_energy_function(i,j,HairpinE_emodel(seq_,S_,S1_,params_,i,j),HairpinE_emodel(seq_,S_,S1_,params2_,i,j)) + start_hybrid_penalty;
+				min_en[0] = en;
 			}
-			min_en[0] = en;
+			min_en[1] = emodel_energy_function(i,j,compute_internal_restricted_emodel(i,j,params_,tree.up),compute_internal_restricted_emodel(i,j,params2_,tree.up));
+			min_en[2] = compute_energy_VMc_restricted_emodel(i,j,tree);
+		} else{
+			if(j<linker_pos){
+				if(canH) {
+					energy_t en = HairpinE_emodel(seq_,S_,S1_,params_,i,j);
+					min_en[0] = en;
+				}
+				min_en[1] = compute_internal_restricted_emodel(i,j,params_,tree.up);
+				min_en[2] = compute_energy_VM_restricted_emodel(i,j,tree,params_);
+			} else{
+				if(canH) {
+					energy_t en = HairpinE_emodel(seq_,S_,S1_,params2_,i,j);
+					min_en[0] = en;
+				}
+				min_en[1] = compute_internal_restricted_emodel(i,j,params2_,tree.up);
+				min_en[2] = compute_energy_VM_restricted_emodel(i,j,tree,params2_);
+			}
 		}
-		energy_t en = emodel_energy_function(i,j,compute_internal_restricted_emodel(i,j,params_,tree.up),compute_internal_restricted_emodel(i,j,params2_,tree.up));
-		min_en[1] = en;
-
-		// No params here which means the values were computed elsewhere so I don't do the emodel calc here
-        min_en[2] = emodel_energy_function(i,j,compute_energy_VM_restricted_emodel(i,j,tree,params_),compute_energy_VM_restricted_emodel(i,j,tree,params2_));
     }
     for (k=0; k<3; k++)
     {

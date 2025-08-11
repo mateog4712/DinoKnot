@@ -90,7 +90,7 @@ private:
 	// Hosna: this function is supposed to fill the WMB array
 	void compute_WMB_emodel(cand_pos_t i,cand_pos_t j, sparse_tree &tree);
 
-	// Fills the WMBP vector
+	// Fills the WMBP array
 	void compute_WMBP_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 	// this is the helper recurrence to fill the WMB array
 
