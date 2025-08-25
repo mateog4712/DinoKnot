@@ -358,7 +358,7 @@ void pseudo_loop::compute_VP_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tre
 	cand_pos_t max_i_bp = std::max(tree.B(i,j),tree.bp(i,j));
 
 	for(cand_pos_t k = i+1; k<min_Bp_j; ++k){
-		m6 = get_WIP(i+1,k-1) + get_VP(k,j-1);
+		m6 = std::min(m6,get_WIP(i+1,k-1) + get_VP(k,j-1));
 	}
 	
 	m6 += ap_penalty + 2*bp_penalty;
@@ -617,7 +617,7 @@ void pseudo_loop::compute_BE_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t ip, c
 					temp = start_hybrid_penalty;
 				}
 
-				energy_t tmp = temp + get_WIP(i+1,l-1) + get_BE(l,lp,ip,jp,tree) + cp_penalty * (j-lp+1-skip_X) + ap_penalty + 2*bp_penalty;
+				energy_t tmp = temp + get_WIP(i+1,l-1) + get_BE(l,lp,ip,jp,tree) + cp_penalty * (j-lp-1-skip_X) + ap_penalty + 2*bp_penalty;
 				m4 = std::min(m4,tmp);
 			}
 
@@ -631,7 +631,7 @@ void pseudo_loop::compute_BE_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t ip, c
 					temp = start_hybrid_penalty;
 				}
 
-				energy_t tmp = temp + ap_penalty + 2*bp_penalty + (cp_penalty * (l-i+1-skip_X)) + get_BE(l,lp,ip,jp,tree) + get_WIP(lp+1,j-1);
+				energy_t tmp = temp + ap_penalty + 2*bp_penalty + (cp_penalty * (l-i-1-skip_X)) + get_BE(l,lp,ip,jp,tree) + get_WIP(lp+1,j-1);
 				m5 = std::min(m5,tmp);
 			}
 		}
@@ -1488,7 +1488,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 						skip_X = linker_length;
 						penalty = start_hybrid_penalty;
 					}
-					tmp = get_WIP(i+1,l-1) + get_BE(l,lp,ip,jp,tree) + c_penalty * (j-lp+1-skip_X) + ap_penalty + 2*bp_penalty + penalty;
+					tmp = get_WIP(i+1,l-1) + get_BE(l,lp,ip,jp,tree) + c_penalty * (j-lp-1-skip_X) + ap_penalty + 2*bp_penalty + penalty;
 					if (min > tmp){
 						min = tmp;
 						best_row = 4;
@@ -1507,7 +1507,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 						skip_X = linker_length;
 						penalty = start_hybrid_penalty;
 					}
-					tmp = ap_penalty + 2*bp_penalty + c_penalty * (l-i+1-skip_X) + get_BE(l,lp,ip,jp,tree) + get_WIP(lp+1,j-1) + penalty;
+					tmp = ap_penalty + 2*bp_penalty + c_penalty * (l-i-1-skip_X) + get_BE(l,lp,ip,jp,tree) + get_WIP(lp+1,j-1) + penalty;
 					if (min > tmp){
 						min = tmp;
 						best_row = 5;
