@@ -70,7 +70,7 @@ void W_final::compute_W(cand_pos_t i, cand_pos_t j, sparse_tree tree){
 			en1 = E_ext_Stem(V->get_energy(k,j),V->get_energy(k+1,j),V->get_energy(k,j-1),V->get_energy(k+1,j-1),S_,params_,k,j,n,tree.tree);
 			en2 = E_ext_Stem(V->get_energy(k,j),V->get_energy(k+1,j),V->get_energy(k,j-1),V->get_energy(k+1,j-1),S_,params_,k,j,n,tree.tree);
 			m3 = std::min(m3,get_energy(i,k-1) + emodel_energy_function(i,j,en1,en2));
-			m4 = std::min(m4,get_energy(i,k-1) + WMB->get_WMB(i,j) + PS_penalty);
+			m4 = std::min(m4,get_energy(i,k-1) + WMB->get_WMB(k,j) + PS_penalty);
 		}
 	}
 	else{
@@ -78,14 +78,14 @@ void W_final::compute_W(cand_pos_t i, cand_pos_t j, sparse_tree tree){
 			m1 = E_ext_Stem(V->get_energy(i,j),V->get_energy(i+1,j),V->get_energy(i,j-1),V->get_energy(i+1,j-1),S_,params_,i,j,n,tree.tree);
 			for(cand_pos_t k = i+1;k<j-TURN;++k){
 				m3 = std::min(m3,get_energy(i,k-1) + E_ext_Stem(V->get_energy(k,j),V->get_energy(k+1,j),V->get_energy(k,j-1),V->get_energy(k+1,j-1),S_,params_,k,j,n,tree.tree));
-				m4 = std::min(m4,get_energy(i,k-1) + WMB->get_WMB(i,j) + PS_penalty);
+				m4 = std::min(m4,get_energy(i,k-1) + WMB->get_WMB(k,j) + PS_penalty);
 			}
 		}
 		else if(i>linker_pos_right){
 			m1 = E_ext_Stem(V->get_energy(i,j),V->get_energy(i+1,j),V->get_energy(i,j-1),V->get_energy(i+1,j-1),S_,params2_,i,j,n,tree.tree);
 			for(cand_pos_t k = i+1;k<j-TURN;++k){
 				m3 = std::min(m3,get_energy(i,k-1) + E_ext_Stem(V->get_energy(k,j),V->get_energy(k+1,j),V->get_energy(k,j-1),V->get_energy(k+1,j-1),S_,params2_,k,j,n,tree.tree));
-				m4 = std::min(m4,get_energy(i,k-1) + WMB->get_WMB(i,j) + PS_penalty);
+				m4 = std::min(m4,get_energy(i,k-1) + WMB->get_WMB(k,j) + PS_penalty);
 			}
 		}
 	}

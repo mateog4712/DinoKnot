@@ -205,7 +205,7 @@ int main (int argc, char *argv[]) {
 
 	int dangle = args_info.dangles_given ? dangle_model : 1;
 
-	start_hybrid_penalty = args_info.pen_given ? hybrid_pen : get_START_HYBRID_PENALTY(model_1_Type,model_2_Type);
+	start_hybrid_penalty = args_info.pen_given ? hybrid_pen : lrint(get_START_HYBRID_PENALTY(model_1_Type,model_2_Type));
 
 	linker_pos = inputSequence1.length()+1;
 	linker_pos_right = inputSequence1.length()+5;
