@@ -22,7 +22,7 @@
 #define HAIRP           'H'         // closes a hairpin loop
 #define INTER           'I'         // closes an internal loop
 #define MULTI           'M'         // closes a regular multi-loop
-#define outer           'o'         // closes a regular multi-loop
+#define outer           'o'         // closes a "multiloop" with no inner crossing base pair, just regions on the left and right
 
 #define M_WM            'B'         // closes a regular partial multi-loop
 #define M_WMv            'v'         // closes a regular partial multi-loop

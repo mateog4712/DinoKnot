@@ -107,7 +107,7 @@ energy_t W_final::hfold_interacting(sparse_tree &tree){
 
 			const bool pkonly = (!pk_only || paired);
 
-			if(ptype_closing> 0 && evaluate && !restricted && pkonly) V->compute_energy_restricted_emodel (i,j,tree);
+			if(ptype_closing> 0 && evaluate && !restricted && pkonly) V->compute_energy_restricted_emodel (i,j,W,tree);
 
 			if(!pk_free) WMB->compute_energies_emodel(i,j,tree);
 
@@ -462,7 +462,15 @@ void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tre
 						break;
 					  }
 				}
+				break;
+				case outer: {
+					f[i].type = outer;
+					f[j].type = outer;
+					insert_node(i+1,linker_pos-1,FREE);
+					insert_node(linker_pos_right+1,j-1,FREE);
 					break;
+				}
+				break;
 			}
 		}
 			break;

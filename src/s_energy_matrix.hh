@@ -53,7 +53,7 @@ class s_energy_matrix
         std::vector<cand_pos_t> index;
 
         // compute the V(i,j) value
-        void compute_energy_restricted_emodel (cand_pos_t i, cand_pos_t j, sparse_tree &tree);
+        void compute_energy_restricted_emodel (cand_pos_t i, cand_pos_t j, std::vector<energy_t> &W, sparse_tree &tree);
 
         // return the node at (i,j)
         free_energy_node* get_node (cand_pos_t i, cand_pos_t j) { cand_pos_t ij = index[i]+j-i; return &nodes[ij]; }
@@ -75,6 +75,7 @@ class s_energy_matrix
         energy_t HairpinE(const std::string& seq, const short* S, const short* S1,  const paramT* params, cand_pos_t i, cand_pos_t j);
         energy_t HairpinE_emodel(const std::string& seq, const short* S, const short* S1,  const paramT* params, cand_pos_t i, cand_pos_t j);
         energy_t compute_stack(cand_pos_t i, cand_pos_t j, const paramT *params);
+        energy_t compute_stack_W(cand_pos_t i, cand_pos_t j, const paramT *params);
         energy_t compute_internal_restricted_emodel(cand_pos_t i, cand_pos_t j, const paramT *params, std::vector<int> &up);
         energy_t compute_int_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l, const paramT *params);
         energy_t compute_energy_VMc_restricted_emodel (cand_pos_t i, cand_pos_t j, sparse_tree &tree);

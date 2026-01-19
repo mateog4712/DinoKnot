@@ -446,6 +446,14 @@ energy_t s_energy_matrix::compute_stack(cand_pos_t i, cand_pos_t j, const paramT
     return E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S_[k]][S_[l]]],S1_[i+1],S1_[j-1],S1_[k-1],S1_[l+1],const_cast<paramT *>(params)) + get_energy(k,l);
 }
 
+energy_t s_energy_matrix::compute_stack_W(cand_pos_t i, cand_pos_t j, const paramT *params){
+
+	const int ptype_closing = pair[S_[i]][S_[j]];
+	cand_pos_t k = i+1;
+    cand_pos_t l = j-1;
+    return E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S_[k]][S_[l]]],S1_[i+1],S1_[j-1],S1_[k-1],S1_[l+1],const_cast<paramT *>(params));
+}
+
 energy_t s_energy_matrix::compute_int_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l, const paramT *params){
 
 	const int ptype_closing = pair[S_[i]][S_[j]];
@@ -471,10 +479,10 @@ energy_t s_energy_matrix::compute_energy_VMc_restricted_emodel (cand_pos_t i, ca
 	return min;
 }
 
-void s_energy_matrix::compute_energy_restricted_emodel (cand_pos_t i, cand_pos_t j, sparse_tree &tree)
+void s_energy_matrix::compute_energy_restricted_emodel (cand_pos_t i, cand_pos_t j, std::vector<energy_t> &W, sparse_tree &tree)
 // compute the V(i,j) value, if the structure must be restricted
 {
-    energy_t min, min_en[3];
+    energy_t min, min_en[4];
     cand_pos_t k, min_rank;
     char type;
 
@@ -483,6 +491,7 @@ void s_energy_matrix::compute_energy_restricted_emodel (cand_pos_t i, cand_pos_t
     min_en[0] = INF;
     min_en[1] = INF;
     min_en[2] = INF;
+	min_en[3] = INF;
 
 
     const bool unpaired = (tree.tree[i].pair<-1 && tree.tree[j].pair<-1);
@@ -498,6 +507,9 @@ void s_energy_matrix::compute_energy_restricted_emodel (cand_pos_t i, cand_pos_t
 			}
 			min_en[1] = emodel_energy_function(i,j,compute_internal_restricted_emodel(i,j,params_,tree.up),compute_internal_restricted_emodel(i,j,params2_,tree.up));
 			min_en[2] = compute_energy_VMc_restricted_emodel(i,j,tree);
+			cand_pos_t ilinker = index[i+1] + linker_pos-1 - (i+1);
+			cand_pos_t linkerj = index[linker_pos_right+1] + j-1 - (linker_pos_right+1);
+			min_en[3] = W[ilinker] + W[linkerj] + emodel_energy_function(i,j,compute_stack_W(i,j,params_),compute_stack_W(i,j,params2_));
 		} else{
 			if(j<linker_pos){
 				if(canH) {
@@ -516,7 +528,7 @@ void s_energy_matrix::compute_energy_restricted_emodel (cand_pos_t i, cand_pos_t
 			}
 		}
     }
-    for (k=0; k<3; k++)
+    for (k=0; k<4; k++)
     {
         if (min_en[k] < min)
         {
@@ -530,6 +542,7 @@ void s_energy_matrix::compute_energy_restricted_emodel (cand_pos_t i, cand_pos_t
         case  0: type = HAIRP; break;
         case  1: type = INTER; break;
         case  2: type = MULTI; break;
+		case  3: type = outer; break;
         default: type = NONE;
     }
 
