@@ -576,38 +576,30 @@ void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tre
 			switch (best_row)
 			{
 				case 0:
-					//printf("W(%d) case 0: inserting Free (0,%d)\n",j,j-1);
 					insert_node (i, j-1, FREE); break;
 				case 1:
-					//printf("W(%d) case 1: inserting Loop(%d,%d) and Free (0,%d)\n",j,best_i,j,best_i-1);
 					insert_node (best_k, j, LOOP);
-					if (best_k-1 > 1)     // it was TURN instead of 0  - not sure if TURN shouldn't be here
+					if (best_k-1 > 1)     
 						insert_node (i, best_k-1, FREE);
 					break;
 				case 2:
-					//printf("W(%d) case 2: inserting Loop(%d,%d) and Free (0,%d)\n",j,best_i+1,j,best_i);
 					insert_node (best_k+1, j, LOOP);
-					if (best_k >= 1)// Hosna, March 26, 2012, was best_i-1 instead of best_i
-						insert_node (i, best_k, FREE);
+					if (best_k-1 >= 1)
+						insert_node (i, best_k-1, FREE);
 					break;
 				case 3:
-					//printf("W(%d) case 3: inserting Loop(%d,%d) and Free (0,%d)\n",j,best_i,j-1,best_i-1);
 					insert_node (best_k, j-1, LOOP);
 					if (best_k-1 > 1)
 						insert_node (i, best_k-1, FREE);
 					break;
 				case 4:
-					//printf("W(%d) case 4: inserting Loop(%d,%d) and Free (0,%d)\n",j,best_i+1,j-1,best_i);
 					insert_node (best_k+1, j-1, LOOP);
-					if (best_k >= 1) // Hosna, March 26, 2012, was best_i-1 instead of best_i
-						insert_node (i, best_k, FREE);
+					if (best_k-1 >= 1)
+						insert_node (i, best_k-1, FREE);
 					break;
-				// Hosna: June 28, 2007
-				// the last branch of W, which is WMB_i,j
 				case 5:
-					//printf("W(%d) case 5: inserting WMB(%d,%d) and Free (0,%d)\n",j,best_i,j,best_i-1);
 					insert_node (best_k, j, P_WMB);
-					if (best_k-1 > 1)     // it was TURN instead of 0  - not sure if TURN shouldn't be here
+					if (best_k-1 > 1)
 						insert_node (i, best_k-1, FREE);
 					break;
 			}
@@ -623,7 +615,6 @@ void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tre
 			  
 			for (cand_pos_t k=i; k <= j-TURN-1; k++){	
 				energy_t m1 = INF,m2 = INF;
-					// energy_t wm_kj = V->E_MLStem(V->get_energy(k,j),V->get_energy(k+1,j),V->get_energy(k,j-1),V->get_energy(k+1,j-1),S_,params_,k,j,n,tree.tree);
 				bool can_pair = tree.up[k-1] >= (k-(i));
 				if(can_pair) m1 = emodel_energy_function(i,j,static_cast<energy_t>((k-i)*params_->MLbase) + V->get_energy_WMv (k, j),static_cast<energy_t>((k-i)*params2_->MLbase) + V->get_energy_WMv (k, j));
 				if (m1 < min){
