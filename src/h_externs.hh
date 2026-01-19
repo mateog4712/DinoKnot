@@ -23,6 +23,7 @@ extern int cp_penalty;
 // Hosna November 16, 2015
 extern int start_hybrid_penalty;
 extern int linker_pos;
+extern int linker_pos_right;
 extern int linker_length;
 
 #endif /* H_EXTERNS_H */

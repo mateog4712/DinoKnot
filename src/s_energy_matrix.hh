@@ -50,15 +50,13 @@ class s_energy_matrix
 
         short *S_;
         short *S1_;
-        // VM_sub should be NULL if you don't want suboptimals
+        std::vector<cand_pos_t> index;
 
-        // void compute_energy (int i, int j);
         // compute the V(i,j) value
         void compute_energy_restricted_emodel (cand_pos_t i, cand_pos_t j, sparse_tree &tree);
 
-
-        free_energy_node* get_node (cand_pos_t i, cand_pos_t j) { cand_pos_t ij = index[i]+j-i; return &nodes[ij]; }
         // return the node at (i,j)
+        free_energy_node* get_node (cand_pos_t i, cand_pos_t j) { cand_pos_t ij = index[i]+j-i; return &nodes[ij]; }
 
         // May 15, 2007. Added "if (i>=j) return INF;"  below. It was miscalculating the backtracked structure.
         energy_t get_energy (cand_pos_t i, cand_pos_t j) { if (i>=j) return INF; cand_pos_t ij = index[i]+j-i; return nodes[ij].energy; }
@@ -99,7 +97,6 @@ class s_energy_matrix
        
         std::string seq_;
         cand_pos_t n;              // sequence length
-        std::vector<cand_pos_t> index;
         std::vector<free_energy_node> nodes;   // the free energy and type (i.e. base pair closing a hairpin loops, stacked pair etc), for each i and j
 };
 

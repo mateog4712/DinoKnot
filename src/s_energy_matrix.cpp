@@ -111,22 +111,21 @@ energy_t s_energy_matrix::E_MLStem(const energy_t& vij,const energy_t& vi1j,cons
 	energy_t e = INF,en=INF;
 
 	pair_type type = pair[S[i]][S[j]];
-	bool pairable = (tree[i].pair <-1 && tree[j].pair <-1) || (tree[i].pair == j);
-
 	switch(params->model_details.dangles){
 		case 2:{
-			if (pairable) {
+			if ((tree[i].pair <-1 && tree[j].pair <-1) || (tree[i].pair == j)) {
 				en = vij; // i j
 				if (en != INF) {
-					base_type mm5 = i>1 ? S[i-1] : -1;
-					base_type mm3 = j<n ? S[j+1] : -1;
+					base_type mm5 = (i>1 && S[i-1] != 0) ? S[i-1] : -1;
+					base_type mm3 = (j<n && S[j+1] != 0) ? S[j+1] : -1;
 					en += emodel_energy_function(i,j,E_MLstem(type, mm5, mm3, params),E_MLstem(type, mm5, mm3, params2));
+					e = std::min(e,en);
 				}
 			}
 			break;
 		}
 		case 1:{
-			if (pairable) {
+			if ((tree[i].pair <-1 && tree[j].pair <-1) || (tree[i].pair == j)) {
 				en = vij; // i j
 				if (en != INF) {
 					en += emodel_energy_function(i,j,E_MLstem(type, -1, -1, params),E_MLstem(type, -1, -1, params2));
@@ -135,8 +134,7 @@ energy_t s_energy_matrix::E_MLStem(const energy_t& vij,const energy_t& vi1j,cons
 			}
 
 			const base_type mm5 = S[i], mm3 = S[j];
-
-			if (pairable && tree[i].pair < 0) {
+			if (((tree[i+1].pair <-1 && tree[j].pair <-1) || (tree[i+1].pair == j)) && tree[i].pair < 0) {
 				en = vi1j; // i+1 j
 				if (en != INF) {
 					en += params->MLbase;
@@ -147,8 +145,8 @@ energy_t s_energy_matrix::E_MLStem(const energy_t& vij,const energy_t& vi1j,cons
 					e = std::min(e, en);
 				}
 			}
-
-			if (pairable && tree[j].pair < 0) {
+			type = pair[S[i]][S[j-1]];
+			if (((tree[i].pair <-1 && tree[j-1].pair <-1) || (tree[i].pair == j-1)) && tree[j].pair < 0) {
 				en = vij1; // i j-1
 				if (en != INF) {
 					en += params->MLbase;
@@ -159,7 +157,8 @@ energy_t s_energy_matrix::E_MLStem(const energy_t& vij,const energy_t& vi1j,cons
 					e = std::min(e, en);
 				}
 			}
-			if (pairable && tree[i].pair < 0 && tree[j].pair<0) {
+			type = pair[S[i + 1]][S[j-1]];
+			if (((tree[i+1].pair <-1 && tree[j-1].pair <-1) || (tree[i+1].pair == j-1)) && tree[i].pair < 0 && tree[j].pair<0) {
 				en = vi1j1; // i+1 j-1
 				if (en != INF) {
 					en += 2 * params->MLbase;
@@ -175,7 +174,7 @@ energy_t s_energy_matrix::E_MLStem(const energy_t& vij,const energy_t& vi1j,cons
 
 		case 0:{
 
-			if (pairable) {
+			if ((tree[i].pair <-1 && tree[j].pair <-1) || (tree[i].pair == j)) {
 				en = vij; // i j
 				if (en != INF) {
 					en += emodel_energy_function(i,j,E_MLstem(type, -1, -1, params),E_MLstem(type, -1, -1, params));
@@ -349,7 +348,7 @@ energy_t s_energy_matrix::compute_energy_VM_restricted_emodel (cand_pos_t i, can
     
 
     //14 Aug Kevin and Mahyar
-    //handles i+1 and j-1 are both X, so we have to force haipin to be picked ---- check these both later
+    //handles i+1 and j-1 are both X, so we have to force hairpin to be picked ---- check these both later
     //also prevents i and j to cross each other
     if(seq_[i+1] == 'X' && seq_[j-1] == 'X') return min;
         
@@ -359,7 +358,6 @@ energy_t s_energy_matrix::compute_energy_VM_restricted_emodel (cand_pos_t i, can
     	energy_t WM2ij = get_energy_WM(i+1,k-1) + get_energy_WMv(k,j-1);
 		WM2ij = std::min(WM2ij,get_energy_WM(i+1,k-1) + get_energy_WMp(k,j-1));
 		if(tree.up[k-1] >= (k-(i+1)))WM2ij = std::min(WM2ij,static_cast<energy_t>((k-i-1)*params->MLbase) + get_energy_WMp(k,j-1));
-
         energy_t WM2ip1j = get_energy_WM(i+2,k-1) + get_energy_WMv(k,j-1);
 		WM2ip1j = std::min(WM2ip1j,get_energy_WM(i+2,k-1) + get_energy_WMp(k,j-1));
 		if(tree.up[k-1] >= (k-(i+1))) WM2ip1j = std::min(WM2ip1j,static_cast<energy_t>((k-(i+1)-1)*params->MLbase) + get_energy_WMp(k,j-1));
@@ -371,8 +369,7 @@ energy_t s_energy_matrix::compute_energy_VM_restricted_emodel (cand_pos_t i, can
 		WM2ip1jm1 = std::min(WM2ip1jm1,get_energy_WM(i+2,k-1) + get_energy_WMp(k,j-2));
 		if(tree.up[k-2] >= (k-(i+2))) WM2ip1jm1 = std::min(WM2ip1jm1,static_cast<energy_t>((k-(i+1)-1)*params->MLbase) + get_energy_WMp(k,j-2));
 
-        min = std::min(min,E_MbLoop(WM2ij,WM2ip1j,WM2ijm1,WM2ip1jm1,S_,params,i,j,tree.tree));
-		
+        min = std::min(min,E_MbLoop(WM2ij,WM2ip1j,WM2ijm1,WM2ip1jm1,S_,params,i,j,tree.tree));		
     }
     return min;
 }
@@ -398,12 +395,12 @@ void s_energy_matrix::compute_VMprime(cand_pos_t i, cand_pos_t j, sparse_tree &t
 	cand_pos_t ij = index[i]+j-i;
 	cand_pos_t ijm1 = index[i]+(j-1)-i;
 	energy_t m1 = INF,m2=INF,m3=INF;
-	for (cand_pos_t k = i+4; k <= j-3; ++k){
+	for (cand_pos_t k = i+4; k < linker_pos; ++k){
 		cand_pos_t kj = index[k]+j-k;
 		m1 = std::min(m1,get_energy_WM(i,k-1) + E_MLStem(get_energy(k,j),get_energy(k+1,j),get_energy(k,j-1),get_energy(k+1,j-1),S_,params_,params2_,k,j,n,tree.tree));
 		m2 = std::min(m2,get_energy_WM(i,k-1) + WMB[kj] + PSM_penalty + b_penalty);
 	}
-	if (j>linker_pos+linker_length && tree.tree[j].pair <= -1) m3 = VMprime[ijm1] + params2_->MLbase;
+	if (j>linker_pos_right && tree.tree[j].pair <= -1) m3 = VMprime[ijm1] + params2_->MLbase;
 	VMprime[ij] =std::min({m1,m2,m3});
 }
 
@@ -509,7 +506,7 @@ void s_energy_matrix::compute_energy_restricted_emodel (cand_pos_t i, cand_pos_t
 				}
 				min_en[1] = compute_internal_restricted_emodel(i,j,params_,tree.up);
 				min_en[2] = compute_energy_VM_restricted_emodel(i,j,tree,params_);
-			} else{
+			} else if(i>linker_pos_right){
 				if(canH) {
 					energy_t en = HairpinE_emodel(seq_,S_,S1_,params2_,i,j);
 					min_en[0] = en;

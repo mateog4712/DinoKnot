@@ -39,13 +39,7 @@ class W_final{
         vrna_param_t *params_;
         vrna_param_t *params2_;
         std::string structure;        // MFE structure
-        // PRE:  the init_data function has been called;
-        //       the space for structure has been allocate
-        // POST: fold sequence, return the MFE structure in structure, and return the MFE
-
-		// PRE:  the init_data function has been called;
-		//       the space for structure has been allocate
-		// POST: fold sequence, return the MFE structure in structure, and return the MFE
+        energy_t get_energy (cand_pos_t i, cand_pos_t j) { if (i>=j) return 0; cand_pos_t ij = V->index[i]+j-i; return W[ij]; }
 
 
 
@@ -77,7 +71,7 @@ class W_final{
         // backtrack, the restricted case
 
         energy_t E_ext_Stem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij1,const energy_t& vi1j1,const short* S, paramT* params, const cand_pos_t i,const cand_pos_t j, cand_pos_t n, std::vector<Node> &tree);
-
+        void compute_W(cand_pos_t i, cand_pos_t j, sparse_tree tree);
 };
 
 #endif /*W_FINAL_H_*/

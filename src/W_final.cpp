@@ -8,7 +8,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <iostream>
-
+#define debug 0
 
 // Hosna June 20th, 2007
 // calls the constructor for s_min_folding
@@ -27,7 +27,8 @@ W_final::W_final(std::string seq,std::string res,bool pk_free, bool pk_only, vrn
 	S1_ = encode_sequence(seq.c_str(),1);
 	this->pk_free = pk_free;
 	this->pk_only = pk_only;
-	W.resize(n+1,0);
+	cand_pos_t total_length = ((n+1) *(n+2))/2;
+	W.resize(total_length,0);
 	space_allocation();
 }
 
@@ -56,12 +57,48 @@ void W_final::space_allocation(){
     WMB = new pseudo_loop (seq_,res,V,S_,S1_,params_,params2_);
 
 }
+// m1 = V(i,j), m2= WMB(i,j), m3 = W(i,k-1) + V(k,j), m4 = W(i,k-1) + WMB(k,j), m5 = W(i,j-1)
+void W_final::compute_W(cand_pos_t i, cand_pos_t j, sparse_tree tree){
+	energy_t m1 = INF, m2 = INF, m3 = INF, m4 = INF, m5=INF;
+	cand_pos_t ij = V->index[i] + j - i;
+	const bool cross_model = is_cross_model(i,j);
+	if(cross_model){
+		energy_t en1 = E_ext_Stem(V->get_energy(i,j),V->get_energy(i+1,j),V->get_energy(i,j-1),V->get_energy(i+1,j-1),S_,params_,i,j,n,tree.tree);
+		energy_t en2 = E_ext_Stem(V->get_energy(i,j),V->get_energy(i+1,j),V->get_energy(i,j-1),V->get_energy(i+1,j-1),S_,params2_,i,j,n,tree.tree);
+		m1 = emodel_energy_function(i,j,en1,en2);
+		for(cand_pos_t k = i+1;k<j-TURN;++k){
+			en1 = E_ext_Stem(V->get_energy(k,j),V->get_energy(k+1,j),V->get_energy(k,j-1),V->get_energy(k+1,j-1),S_,params_,k,j,n,tree.tree);
+			en2 = E_ext_Stem(V->get_energy(k,j),V->get_energy(k+1,j),V->get_energy(k,j-1),V->get_energy(k+1,j-1),S_,params_,k,j,n,tree.tree);
+			m3 = std::min(m3,get_energy(i,k-1) + emodel_energy_function(i,j,en1,en2));
+			m4 = std::min(m4,get_energy(i,k-1) + WMB->get_WMB(i,j) + PS_penalty);
+		}
+	}
+	else{
+		if(j<linker_pos){
+			m1 = E_ext_Stem(V->get_energy(i,j),V->get_energy(i+1,j),V->get_energy(i,j-1),V->get_energy(i+1,j-1),S_,params_,i,j,n,tree.tree);
+			for(cand_pos_t k = i+1;k<j-TURN;++k){
+				m3 = std::min(m3,get_energy(i,k-1) + E_ext_Stem(V->get_energy(k,j),V->get_energy(k+1,j),V->get_energy(k,j-1),V->get_energy(k+1,j-1),S_,params_,k,j,n,tree.tree));
+				m4 = std::min(m4,get_energy(i,k-1) + WMB->get_WMB(i,j) + PS_penalty);
+			}
+		}
+		else if(i>linker_pos_right){
+			m1 = E_ext_Stem(V->get_energy(i,j),V->get_energy(i+1,j),V->get_energy(i,j-1),V->get_energy(i+1,j-1),S_,params2_,i,j,n,tree.tree);
+			for(cand_pos_t k = i+1;k<j-TURN;++k){
+				m3 = std::min(m3,get_energy(i,k-1) + E_ext_Stem(V->get_energy(k,j),V->get_energy(k+1,j),V->get_energy(k,j-1),V->get_energy(k+1,j-1),S_,params2_,k,j,n,tree.tree));
+				m4 = std::min(m4,get_energy(i,k-1) + WMB->get_WMB(i,j) + PS_penalty);
+			}
+		}
+	}
+	m2 = WMB->get_WMB(i,j) + PS_penalty;
+	if(tree.tree[j].pair<0) m5 = get_energy(i,j-1);
+	W[ij] = std::min({m1,m2,m3,m4,m5});
+}
 
 energy_t W_final::hfold_interacting(sparse_tree &tree){
 
-	for (int i = n; i >=1; --i)
+	for (cand_pos_t i = n; i >=1; --i)
 	{	
-		for (int j =i; j<=n; ++j)//for (i=0; i<=j; i++)
+		for (cand_pos_t j =i; j<=n; ++j)
 		{
 			const bool evaluate = tree.weakly_closed(i,j);
 			const pair_type ptype_closing = pair[S_[i]][S_[j]];
@@ -70,46 +107,25 @@ energy_t W_final::hfold_interacting(sparse_tree &tree){
 
 			const bool pkonly = (!pk_only || paired);
 
-			if(ptype_closing> 0 && evaluate && !restricted && pkonly)
-			V->compute_energy_restricted_emodel (i,j,tree);
+			if(ptype_closing> 0 && evaluate && !restricted && pkonly) V->compute_energy_restricted_emodel (i,j,tree);
 
 			if(!pk_free) WMB->compute_energies_emodel(i,j,tree);
 
-
 			V->compute_WMv_WMp_emodel(i,j,WMB->get_WMB(i,j),tree.tree);
-			V->compute_energy_WM_restricted_emodel(i,j,tree,WMB->WMB);
-			V->compute_VMprime(i,j,tree,WMB->WMB);
+
+			V->compute_energy_WM_restricted_emodel(i,j,tree,WMB->WMB); // if i>linkerpos || j < linker_pos_right?
+			compute_W(i,j,tree);
+			if(i<linker_pos && j>linker_pos_right) V->compute_VMprime(i,j,tree,WMB->WMB);
 		}
 
 	}
-	// w
-	for (cand_pos_t j= TURN+1; j <= n; j++){
-		energy_t m1 = INF;
-		energy_t m2 = INF;
-		energy_t m3 = INF;
-		bool can_pair_kj = true;
-		if ((seq_[j-1] == 'X' && seq_[j+1] == 'X') || (seq_[j] == 'X' && seq_[j-1] != 'X')) can_pair_kj = false;
-		if(tree.tree[j].pair < 0) m1 = W[j-1];
-		
-		
-		for (cand_pos_t k=1; k<=j-TURN-1; ++k){
-		 	// m2 = compute_W_br2_restricted (j, fres, must_choose_this_branch);
-			energy_t acc = (k>1) ? W[k-1]: 0;
-			energy_t en1 = E_ext_Stem(V->get_energy(k,j),V->get_energy(k+1,j),V->get_energy(k,j-1),V->get_energy(k+1,j-1),S_,params_,k,j,n,tree.tree);
-			energy_t en2 = E_ext_Stem(V->get_energy(k,j),V->get_energy(k+1,j),V->get_energy(k,j-1),V->get_energy(k+1,j-1),S_,params2_,k,j,n,tree.tree);
-			if(can_pair_kj) m2 = std::min(m2,acc + emodel_energy_function(k,j,en1,en2));
-			if (k == 1 || (tree.weakly_closed(1,k-1) && tree.weakly_closed(k,j))) m3 = std::min(m3,acc + WMB->get_WMB(k,j) + PS_penalty);
-			}
-		W[j] = std::min({m1,m2,m3});
-	}
-    energy_t energy = W[n];
-
+    energy_t energy = get_energy(1,n);
     // backtrack
     // first add (1,n) on the stack
     stack_interval = new seq_interval;
     stack_interval->i = 1;
     stack_interval->j = n;
-    stack_interval->energy = W[n];
+    stack_interval->energy = get_energy(1,n);
     stack_interval->type = FREE;
     stack_interval->next = NULL;
 
@@ -145,11 +161,10 @@ energy_t W_final::E_ext_Stem(const energy_t& vij,const energy_t& vi1j,const ener
 	
     if ((tree[i].pair <-1 && tree[j].pair <-1) || (tree[i].pair == j && tree[j].pair == i)) {
 				en = vij; // i j
-
 				if (en != INF) {
 					if (params->model_details.dangles == 2){
-						base_type si1 = i>1 ? S[i-1] : -1;
-                		base_type sj1 = j<n ? S[j+1] : -1;
+						base_type si1 = (i>1 && S[i-1]!=0) ? S[i-1] : -1;
+                		base_type sj1 = (j<n && S[j+1]!=0) ? S[j+1] : -1;
                         en += vrna_E_ext_stem(tt, si1, sj1, params);
 					}
                     else{
@@ -206,42 +221,28 @@ energy_t W_final::E_ext_Stem(const energy_t& vij,const energy_t& vi1j,const ener
 
 void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tree &tree){
     char type;
-
-
-	// printf("type is %c and i is %d and j is %d\n",cur_interval->type,cur_interval->i,cur_interval->j);
-	//Hosna, March 8, 2012
-	// changing nested if to switch for optimality
-	// printf("At %c at %d and %d\n",cur_interval->type,cur_interval->i,cur_interval->j);
 	switch (cur_interval->type){
 		case LOOP:
 		{
-			int i = cur_interval->i;
-			int j = cur_interval->j;
-			if (i >= j)
-				return;
+			cand_pos_t i = cur_interval->i;
+			cand_pos_t j = cur_interval->j;
+			if (i >= j) return;
 			f[i].pair = j;
 			f[j].pair = i;
 
-			// Hosna Jun. 28 2007
-			// if the pairing is part of original structure, put '(' and ')' in the structure
-			// otherwise make it '[' and ']' -- changed to () if pseudoknot-free and [] if pseudoknotted -Mateo
 			structure[i] = '(';
 			structure[j] = ')';		
 
 			type = V->get_type (i,j);
-			// printf("At %d at %d and %c\n",cur_interval->i,cur_interval->j,type);
-			// Hosna, March 8, 2012
-			// changing nested ifs to switch for optimality
+			if(debug) printf("At %d at %d and %c\n",cur_interval->i,cur_interval->j,type);
 			switch (type){
 				case HAIRP:
-			//else if (type == HAIRP)
 				{
 					f[i].type = HAIRP;
 					f[j].type = HAIRP;
 				}
 					break;
 				case INTER:
-			//else if (type == INTER)
 				{
 					f[i].type = INTER;
 					f[j].type = INTER;
@@ -286,13 +287,12 @@ void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tre
 				}
 					break;
 				case MULTI:
-			//else if (type == MULTI)
 				{
 					f[i].type = MULTI;
 					f[j].type = MULTI;
 					bool cross_model = is_cross_model(i,j);
 					int best_k = -1, best_row = -1;
-					int tmp= INF, min = INF;
+					energy_t tmp= INF, min = INF;
 					pair_type tt  = pair[S_[j]][S_[i]];
 					if(cross_model){
 						for (cand_pos_t k = i+2; k <= j-3; k++){
@@ -469,220 +469,146 @@ void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tre
 		}
 			break;
 		case FREE:
-		{
-			int j = cur_interval->j;
+		{	
+			if(debug) printf("At %d and %d and %c\n",cur_interval->i,cur_interval->j,FREE);
+			cand_pos_t i = cur_interval->i;
+			cand_pos_t j = cur_interval->j;
 
 			if (j==1) return;
 
-			energy_t min = INF, tmp = INF, acc = INF, energy_ij = INF;
-			cand_pos_t best_row = -1, best_i = -1;
+			energy_t min = INF, tmp = INF, acc = INF, energy_kj = INF;
+			cand_pos_t best_row = -1, best_k = -1;
 
 			// this case is for j unpaired, so I have to check that.
-			if (tree.tree[j].pair <= -1)
-			{
-				tmp = W[j-1];
-				if (tmp < min)
-				{
+			if (tree.tree[j].pair <= -1){
+				tmp = get_energy(i,j-1);
+				if (tmp < min){
 					min = tmp;
 					best_row = 0;
 				}
 			}
-			for (cand_pos_t i=1; i<=j-1; i++)    // no TURN
+			for (cand_pos_t k=i; k<j-3; ++k)    // no TURN
 			{
-				if (seq_[i] == 'X' || seq_[j] == 'X') continue;
-				// Don't need to make sure i and j don't have to pair with something else
+				if (seq_[k-1] == 'X' || seq_[j-1] == 'X') continue; // should this be k+1 and j+1?
+				// Don't need to make sure k and j don't have to pair with something else
 				//  it's INF, done in fold_sequence_restricted
-				acc = (i>1) ? W[i-1] : 0;
-				energy_ij = V->get_energy(i,j);
+				acc = get_energy(i,k-1);
+				energy_kj = V->get_energy(k,j);
 
-				if (energy_ij < INF)
-				{	
+				if (energy_kj < INF){	
 					if(params_->model_details.dangles == 2){
-						base_type si1 = i>1 ? S_[i-1] : -1;
+						base_type sk1 = i>1 ? S_[k-1] : -1;
 						base_type sj1 = j<n ? S_[j+1] : -1;
-						tmp = energy_ij + emodel_energy_function(i,j,E_ExtLoop(pair[S_[i]][S_[j]],si1,sj1,params_),E_ExtLoop(pair[S_[i]][S_[j]],si1,sj1,params2_)) + acc;
+						tmp = energy_kj + emodel_energy_function(k,j,E_ExtLoop(pair[S_[k]][S_[j]],sk1,sj1,params_),E_ExtLoop(pair[S_[k]][S_[j]],sk1,sj1,params2_)) + acc;
 					} else 
-						tmp = energy_ij + emodel_energy_function(i,j,E_ExtLoop(pair[S_[i]][S_[j]],-1,-1,params_),E_ExtLoop(pair[S_[i]][S_[j]],-1,-1,params2_)) + acc; 
-					if (tmp < min)
-					{
+						tmp = energy_kj + emodel_energy_function(k,j,E_ExtLoop(pair[S_[k]][S_[j]],-1,-1,params_),E_ExtLoop(pair[S_[k]][S_[j]],-1,-1,params2_)) + acc; 
+					if (tmp < min){
 					min = tmp;
-					best_i = i;
+					best_k = k;
 					best_row = 1;
 					}
 					
 				}
 				if(params_->model_details.dangles ==1){
-					if (tree.tree[i].pair <= -1)
-					{
-						energy_ij = V->get_energy(i+1,j);
-						if (energy_ij < INF)
-						{
-							tmp = energy_ij + emodel_energy_function(i,j,E_ExtLoop(pair[S_[i+1]][S_[j]],S_[i],-1,params_),E_ExtLoop(pair[S_[i+1]][S_[j]],S_[i],-1,params2_)) + acc;
+					if (tree.tree[k].pair <= -1){
+						energy_kj = V->get_energy(k+1,j);
+						if (energy_kj < INF){
+							tmp = energy_kj + emodel_energy_function(k+1,j,E_ExtLoop(pair[S_[k+1]][S_[j]],S_[k],-1,params_),E_ExtLoop(pair[S_[k+1]][S_[j]],S_[k],-1,params2_)) + acc;
 							
-							if (tmp < min)
-							{
+							if (tmp < min){
 								min = tmp;
-								best_i = i;
+								best_k = k;
 								best_row = 2;
 							}
 							
 						}
 					}
-					if (tree.tree[j].pair <= -1)
-					{
-						energy_ij = V->get_energy(i,j-1);
-						if (energy_ij < INF)
-						{
-							tmp = energy_ij + emodel_energy_function(i,j,E_ExtLoop(pair[S_[i]][S_[j-1]],-1,S_[j],params_),E_ExtLoop(pair[S_[i]][S_[j-1]],-1,S_[j],params2_)) + acc;
-							if (tmp < min)
-							{
+					if (tree.tree[j].pair <= -1){
+						energy_kj = V->get_energy(k,j-1);
+						if (energy_kj < INF){
+							tmp = energy_kj + emodel_energy_function(k,j-1,E_ExtLoop(pair[S_[k]][S_[j-1]],-1,S_[j],params_),E_ExtLoop(pair[S_[k]][S_[j-1]],-1,S_[j],params2_)) + acc;
+							if (tmp < min){
 								min = tmp;
-								best_i = i;
+								best_k = k;
 								best_row = 3;
 							}
 						}
 					}
-					if (tree.tree[i].pair <= -1 && tree.tree[j].pair <= -1)
-					{
-						energy_ij = V->get_energy(i+1,j-1);
-						if (energy_ij < INF)
-						{
-							tmp = energy_ij + emodel_energy_function(i,j,E_ExtLoop(pair[S_[i+1]][S_[j-1]],S_[i],S_[j],params_),E_ExtLoop(pair[S_[i+1]][S_[j-1]],S_[i],S_[j],params2_)) + acc;
-							if (tmp < min)
-							{
+					if (tree.tree[k].pair <= -1 && tree.tree[j].pair <= -1){
+						energy_kj = V->get_energy(k+1,j-1);
+						if (energy_kj < INF){
+							tmp = energy_kj + emodel_energy_function(k+1,j-1,E_ExtLoop(pair[S_[k+1]][S_[j-1]],S_[k],S_[j],params_),E_ExtLoop(pair[S_[k+1]][S_[j-1]],S_[k],S_[j],params2_)) + acc;
+							if (tmp < min){
 								min = tmp;
-								best_i = i;
+								best_k = k;
 								best_row = 4;
 							}
 						}
 					}
 				}
 			}
-		// Hosna June 30, 2007
-		// The following would not take care of when
-		// we have some unpaired bases before the start of the WMB
-		for (cand_pos_t i=1; i<=j-1; i++)
-		{
-			// Hosna: July 9, 2007
-			// We only chop W to W + WMB when the bases before WMB are free
-			if (i == 1 || (tree.weakly_closed(1,i-1) && tree.weakly_closed(i,j))){
+			// Hosna June 30, 2007
+			// The following would not take care of when
+			// we have some unpaired bases before the start of the WMB
+			for (cand_pos_t k=i; k<j-TURN; ++k)
+			{
+				// Hosna: July 9, 2007
+				// We only chop W to W + WMB when the bases before WMB are free
+				if (k == 1 || (tree.weakly_closed(i,k-1) && tree.weakly_closed(k,j))){
 
-				acc = (i-1>0) ? W[i-1]: 0;
+					acc = get_energy(i,k-1);
 
-				energy_ij = WMB->get_WMB(i,j);
+					energy_kj = WMB->get_WMB(k,j);
 
-				if (energy_ij < INF)
-				{
-					tmp = energy_ij + PS_penalty + acc;
-
-					if (tmp < min)
+					if (energy_kj < INF)
 					{
-						min = tmp;
-						best_row = 5;
-						best_i = i;
-					}
-				}
+						tmp = energy_kj + PS_penalty + acc;
 
-				if (tree.tree[i].pair <= -1 && i+1 < j)
-				{
-					energy_ij = WMB->get_WMB(i+1,j);
-					if (energy_ij < INF)
-					{
-						tmp = energy_ij + PS_penalty + acc;
 						if (tmp < min)
 						{
 							min = tmp;
-							best_row = 6;
-							best_i = i;
-						}
-					}
-				}
-
-				if (tree.tree[j].pair <= -1 && i < j-1)
-				{
-					energy_ij = WMB->get_WMB(i,j-1);
-					if (energy_ij < INF)
-					{
-						tmp = energy_ij + PS_penalty + acc;
-						if (tmp < min)
-						{
-							min = tmp;
-							best_row = 7;
-							best_i = i;
-						}
-					}
-				}
-
-				if (tree.tree[i].pair <= -1 && tree.tree[j].pair <= -1 && i+1 < j-1)
-				{
-					energy_ij = WMB->get_WMB(i+1,j-1);
-					if (energy_ij < INF)
-					{
-						tmp = energy_ij + PS_penalty + acc;
-						if (tmp < min)
-						{
-							min = tmp;
-							best_row = 8;
-							best_i = i;
+							best_row = 5;
+							best_k = k;
 						}
 					}
 				}
 			}
-		}
 			switch (best_row)
 			{
 				case 0:
 					//printf("W(%d) case 0: inserting Free (0,%d)\n",j,j-1);
-					insert_node (1, j-1, FREE); break;
+					insert_node (i, j-1, FREE); break;
 				case 1:
 					//printf("W(%d) case 1: inserting Loop(%d,%d) and Free (0,%d)\n",j,best_i,j,best_i-1);
-					insert_node (best_i, j, LOOP);
-					if (best_i-1 > 1)     // it was TURN instead of 0  - not sure if TURN shouldn't be here
-						insert_node (1, best_i-1, FREE);
+					insert_node (best_k, j, LOOP);
+					if (best_k-1 > 1)     // it was TURN instead of 0  - not sure if TURN shouldn't be here
+						insert_node (i, best_k-1, FREE);
 					break;
 				case 2:
 					//printf("W(%d) case 2: inserting Loop(%d,%d) and Free (0,%d)\n",j,best_i+1,j,best_i);
-					insert_node (best_i+1, j, LOOP);
-					if (best_i >= 1)// Hosna, March 26, 2012, was best_i-1 instead of best_i
-						insert_node (1, best_i, FREE);
+					insert_node (best_k+1, j, LOOP);
+					if (best_k >= 1)// Hosna, March 26, 2012, was best_i-1 instead of best_i
+						insert_node (i, best_k, FREE);
 					break;
 				case 3:
 					//printf("W(%d) case 3: inserting Loop(%d,%d) and Free (0,%d)\n",j,best_i,j-1,best_i-1);
-					insert_node (best_i, j-1, LOOP);
-					if (best_i-1 > 1)
-						insert_node (1, best_i-1, FREE);
+					insert_node (best_k, j-1, LOOP);
+					if (best_k-1 > 1)
+						insert_node (i, best_k-1, FREE);
 					break;
 				case 4:
 					//printf("W(%d) case 4: inserting Loop(%d,%d) and Free (0,%d)\n",j,best_i+1,j-1,best_i);
-					insert_node (best_i+1, j-1, LOOP);
-					if (best_i >= 1) // Hosna, March 26, 2012, was best_i-1 instead of best_i
-						insert_node (1, best_i, FREE);
+					insert_node (best_k+1, j-1, LOOP);
+					if (best_k >= 1) // Hosna, March 26, 2012, was best_i-1 instead of best_i
+						insert_node (i, best_k, FREE);
 					break;
 				// Hosna: June 28, 2007
 				// the last branch of W, which is WMB_i,j
 				case 5:
 					//printf("W(%d) case 5: inserting WMB(%d,%d) and Free (0,%d)\n",j,best_i,j,best_i-1);
-					insert_node (best_i, j, P_WMB);
-					if (best_i-1 > 1)     // it was TURN instead of 0  - not sure if TURN shouldn't be here
-						insert_node (1, best_i-1, FREE);
-					break;
-				case 6:
-					//printf("W(%d) case 6: inserting WMB(%d,%d) and Free (0,%d)\n",j,best_i+1,j,best_i);
-					insert_node (best_i+1, j, P_WMB);
-					if (best_i >= 1) // Hosna, March 26, 2012, was best_i-1 instead of best_i
-						insert_node (1, best_i, FREE);
-					break;
-				case 7:
-					//printf("W(%d) case 7: inserting WMB(%d,%d) and Free (0,%d)\n",j,best_i,j-1,best_i-1);
-					insert_node (best_i, j-1, P_WMB);
-					if (best_i-1 > 1)
-						insert_node (1, best_i-1, FREE);
-					break;
-				case 8:
-					//printf("W(%d) case 8: inserting WMB(%d,%d) and Free (0,%d)\n",j,best_i+1,j-1,best_i);
-					insert_node (best_i+1, j-1, P_WMB);
-					if (best_i >= 1) // Hosna, March 26, 2012, was best_i-1 instead of best_i
-						insert_node (1, best_i, FREE);
+					insert_node (best_k, j, P_WMB);
+					if (best_k-1 > 1)     // it was TURN instead of 0  - not sure if TURN shouldn't be here
+						insert_node (i, best_k-1, FREE);
 					break;
 			}
 		}
@@ -691,6 +617,7 @@ void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tre
 		{
 			cand_pos_t i = cur_interval->i;
 			cand_pos_t j = cur_interval->j;
+			if(debug) printf("M_WM at %d and %d\n",i,j);
 			energy_t min = INF;
 			cand_pos_t best_k = j, best_row = -1;
 			  
@@ -753,6 +680,7 @@ void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tre
 		{
 			cand_pos_t i = cur_interval->i;
 			cand_pos_t j = cur_interval->j;
+			if(debug) printf("M_WMv at %d and %d\n",i,j);
 			energy_t min = INF;
 			cand_pos_t best_row;
 			cand_pos_t si = S_[i];
@@ -813,6 +741,7 @@ void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tre
 		{
 			cand_pos_t i = cur_interval->i;
 			cand_pos_t j = cur_interval->j;
+			if(debug) printf("M_WMp at %d and %d\n",i,j);
 			energy_t min = INF;
 			int best_row = -1;
 
@@ -837,6 +766,7 @@ void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tre
 		{
 			cand_pos_t i = cur_interval->i;
 			cand_pos_t j = cur_interval->j;
+			if(debug) printf("M_VMp at %d and %d\n",i,j);
 			energy_t min = INF;
 			cand_pos_t best_k = j, best_row = -1;
 			for (cand_pos_t k = i+4; k <= j-3; ++k){
@@ -872,7 +802,7 @@ void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tre
 						}
 					}
 					if(tree.tree[k].pair<0 && tree.tree[j].pair<0){
-						tt = pair[S_[i+1]][S_[j-1]];
+						tt = pair[S_[k+1]][S_[j-1]];
 						energy_t tmp = V->get_energy_WM(i,k-1) + V->get_energy(k+1,j-1) + emodel_energy_function(k+1,j-1,E_MLstem(tt,sk,sj,params_),E_MLstem(tt,sk,sj,params2_));
 						if(tmp<min){
 							min = tmp;
@@ -965,7 +895,6 @@ int distance(int left, int right){
 //Mateo 13 Sept 2023
 //given a initial hotspot which is a hairpin loop, keep trying to add a arc to form a larger stack
 void expand_hotspot(s_energy_matrix *V, Hotspot &hotspot, int n){
-    //printf("\nexpanding hotspot: i: %d j: %d\n",hotspot->get_left_inner_index(),hotspot->get_right_inner_index());
     //calculation for the hairpin that is already in there
     V->compute_hotspot_energy(hotspot.get_left_outer_index(),hotspot.get_right_outer_index(),0);
 
@@ -994,13 +923,10 @@ void expand_hotspot(s_energy_matrix *V, Hotspot &hotspot, int n){
 
     double energy = V->get_energy(hotspot.get_left_outer_index(),hotspot.get_right_outer_index());
 
-    // printf("here and %d\n",energy);
-    //printf("energy: %lf, AU_total: %d, dangle_top_total: %d, dangle_bot_total: %d\n",energy,non_gc_penalty,dangle_top_penalty,dangle_bot_penalty);
 
     energy = (energy + dangle_penalty) / 100;
 
     hotspot.set_energy(energy);
-    //printf("done: %d %d %d %d\n",hotspot->get_left_outer_index(),hotspot->get_left_inner_index(),hotspot->get_right_inner_index(),hotspot->get_right_outer_index());
     return;
 }
 
