@@ -425,12 +425,10 @@ void W_final::backtrack_restricted_emodel(seq_interval *cur_interval, sparse_tre
 						insert_node (best_k, j-1, M_WM);
 						break;
 					  case 3:
-		             	// printf("M_WM(%d,%d) branch 3: pushing M_WM(%d,%d) and M_WM(%d,%d) \n", i,j,i+1,best_k-1,best_k,j-2);
 						insert_node (i+1, best_k-1, M_WM);
 						insert_node (best_k, j-2, M_WM);
 						break;
 					  case 4:
-		             	// printf("M_WM(%d,%d) branch 4: pushing M_WM(%d,%d) and M_WM(%d,%d) \n", i,j,i+2,best_k,best_k+1,j-2);
 						insert_node (i+2, best_k-1, M_WM);
 						insert_node (best_k, j-2, M_WM);
 						break;

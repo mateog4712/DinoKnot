@@ -6,6 +6,7 @@
 #include <iostream>
 #include <math.h>
 #include <algorithm>
+#define debug 0
 
 pseudo_loop::pseudo_loop(std::string seq, std::string res, s_energy_matrix *V, short *S, short *S1, vrna_param_t *params, vrna_param_t *params2)
 {
@@ -254,13 +255,13 @@ void pseudo_loop::compute_VPL_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tr
 			continue;
 		}
 		cand_pos_t skip_X = 0;
-		energy_t tmp = 0;
+		energy_t pen = 0;
 		if(is_cross_model(i,k)){
 			skip_X = linker_length;
-			tmp = start_hybrid_penalty;
+			pen = start_hybrid_penalty;
 		}
 		bool can_pair = tree.up[k-1] >= (k-i);
-		if(can_pair) m1 = std::min(m1, static_cast<energy_t>((k-i-skip_X)*cp_penalty) + tmp + get_VP(k,j));
+		if(can_pair) m1 = std::min(m1, static_cast<energy_t>((k-i-skip_X)*cp_penalty) + pen + get_VP(k,j));
 	}
 
 
@@ -282,12 +283,12 @@ void pseudo_loop::compute_VPR_emodel(cand_pos_t i, cand_pos_t j, sparse_tree &tr
 			bool can_pair = tree.up[j-1] >= (j-k);
 			m1 = std::min(m1, get_VP(i,k) + get_WIP(k+1,j));
 			cand_pos_t skip_X = 0;
-			energy_t tmp = 0;
+			energy_t pen = 0;
 			if(is_cross_model(k,j)){
 				skip_X = linker_length;
-				tmp = start_hybrid_penalty;
+				pen = start_hybrid_penalty;
 			}
-			if(can_pair) m2 = std::min(m2,get_VP(i,k) + tmp + static_cast<energy_t>((j-k-skip_X)*cp_penalty));
+			if(can_pair) m2 = std::min(m2,get_VP(i,k) + pen + static_cast<energy_t>((j-k-skip_X)*cp_penalty));
 		}
 
 	VPR[ij] = std::min(m1,m2);
@@ -611,13 +612,13 @@ void pseudo_loop::compute_BE_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t ip, c
 			if (weakly_closed_il && empty_region_lpj){
 				// Why would this cross, it's BE?
 				cand_pos_t skip_X = 0;
-				energy_t temp = 0;
+				energy_t pen = 0;
 				if(is_cross_model(lp,j)){
 					skip_X = linker_length;
-					temp = start_hybrid_penalty;
+					pen = start_hybrid_penalty;
 				}
 
-				energy_t tmp = temp + get_WIP(i+1,l-1) + get_BE(l,lp,ip,jp,tree) + cp_penalty * (j-lp-1-skip_X) + ap_penalty + 2*bp_penalty;
+				energy_t tmp = pen + get_WIP(i+1,l-1) + get_BE(l,lp,ip,jp,tree) + cp_penalty * (j-lp-1-skip_X) + ap_penalty + 2*bp_penalty;
 				m4 = std::min(m4,tmp);
 			}
 
@@ -625,13 +626,13 @@ void pseudo_loop::compute_BE_emodel(cand_pos_t i, cand_pos_t j, cand_pos_t ip, c
 			if (empty_region_il && weakly_closed_lpj){
 				// Why would this cross, it's BE?
 				cand_pos_t skip_X = 0;
-				energy_t temp = 0;
+				energy_t pen = 0;
 				if(is_cross_model(i,l)){
 					skip_X = linker_length;
-					temp = start_hybrid_penalty;
+					pen = start_hybrid_penalty;
 				}
 
-				energy_t tmp = temp + ap_penalty + 2*bp_penalty + (cp_penalty * (l-i-1-skip_X)) + get_BE(l,lp,ip,jp,tree) + get_WIP(lp+1,j-1);
+				energy_t tmp = pen + ap_penalty + 2*bp_penalty + (cp_penalty * (l-i-1-skip_X)) + get_BE(l,lp,ip,jp,tree) + get_WIP(lp+1,j-1);
 				m5 = std::min(m5,tmp);
 			}
 		}
@@ -746,6 +747,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 	{
 			case P_WMB:
 			{
+				if(debug) printf("In WMB, at %d and %d\n",cur_interval->i,cur_interval->j);
 				cand_pos_t i = cur_interval->i;
 				cand_pos_t j = cur_interval->j;
 				if (i >= j)
@@ -804,6 +806,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 
 			case P_WMBW:
 			{
+				if(debug) printf("In WMBW, at %d and %d\n",cur_interval->i,cur_interval->j);
 				cand_pos_t i = cur_interval->i;
 				cand_pos_t j = cur_interval->j;
 				if (i >= j)
@@ -833,6 +836,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 				break;
 			case P_WMBP:
 			{
+				if(debug) printf("In WMBP, at %d and %d\n",cur_interval->i,cur_interval->j);
 				cand_pos_t i = cur_interval->i;
 				cand_pos_t j = cur_interval->j;
 				if (i >= j)
@@ -978,6 +982,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 				break;
 			case P_VP:
 			{
+				if(debug) printf("In VP, at %d and %d\n",cur_interval->i,cur_interval->j);
 				cand_pos_t i = cur_interval->i;
 				cand_pos_t j = cur_interval->j;
 				if (i>=j){
@@ -1204,6 +1209,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 
 			case P_VPL:
 			{
+				if(debug) printf("In VPL, at %d and %d\n",cur_interval->i,cur_interval->j);
 				cand_pos_t i = cur_interval->i;
 				cand_pos_t j = cur_interval->j;
 				if (i >= j) return;
@@ -1216,12 +1222,12 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 					bool can_pair = tree.up[k-1] >= (k-i);
 					if(can_pair) {
 						cand_pos_t skip_X = 0;
-						energy_t tmp = 0;
+						energy_t pen = 0;
 						if(is_cross_model(i,k)){
 							skip_X = linker_length;
-							tmp = start_hybrid_penalty;
+							pen = start_hybrid_penalty;
 						}
-						tmp = static_cast<energy_t>((k-i-skip_X)*cp_penalty) + get_VP(k,j) + tmp;
+						tmp = static_cast<energy_t>((k-i-skip_X)*cp_penalty) + get_VP(k,j) + pen;
 					
 					}
 					if(tmp < min){
@@ -1240,6 +1246,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 
 			case P_VPR:
 			{
+				if(debug) printf("In VPR, at %d and %d\n",cur_interval->i,cur_interval->j);
 				cand_pos_t i = cur_interval->i;
 				cand_pos_t j = cur_interval->j;
 				if (i >= j) return;
@@ -1264,12 +1271,12 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 					bool can_pair = tree.up[j-1] >= (j-k);
 					if(can_pair) {
 						cand_pos_t skip_X = 0;
-						energy_t tmp = 0;
+						energy_t pen = 0;
 						if(is_cross_model(k,j)){
 							skip_X = linker_length;
-							tmp = start_hybrid_penalty;
+							pen = start_hybrid_penalty;
 						}
-						tmp = VP_energy + static_cast<energy_t>((j-k-skip_X)*cp_penalty)+tmp;
+						tmp = VP_energy + static_cast<energy_t>((j-k-skip_X)*cp_penalty)+pen;
 					}
 					if(tmp < min){
 						best_k = k;
@@ -1300,6 +1307,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 				break;
 		case P_WI:
 		{
+			if(debug) printf("In WI, at %d and %d\n",cur_interval->i,cur_interval->j);
 			cand_pos_t i = cur_interval->i;
 			cand_pos_t j = cur_interval->j;
 			if (i >= j){
@@ -1418,6 +1426,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 			break;
 		case P_BE:
 		{
+			if(debug) printf("In BE, at %d and %d\n",cur_interval->i,cur_interval->j);
 			cand_pos_t i = cur_interval->i;
 			cand_pos_t j = tree.tree[i].pair;
 			cand_pos_t ip = cur_interval->j;
@@ -1502,12 +1511,12 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 					// After meeting with Anne and Cristina --> ap should have 2* bp to consider the biggest and the one that crosses
 					// in a multiloop that spans a band
 					cand_pos_t skip_X = 0;
-					energy_t penalty = 0;
+					energy_t pen = 0;
 					if(is_cross_model(i,l)){
 						skip_X = linker_length;
-						penalty = start_hybrid_penalty;
+						pen = start_hybrid_penalty;
 					}
-					tmp = ap_penalty + 2*bp_penalty + c_penalty * (l-i-1-skip_X) + get_BE(l,lp,ip,jp,tree) + get_WIP(lp+1,j-1) + penalty;
+					tmp = ap_penalty + 2*bp_penalty + c_penalty * (l-i-1-skip_X) + get_BE(l,lp,ip,jp,tree) + get_WIP(lp+1,j-1) + pen;
 					if (min > tmp){
 						min = tmp;
 						best_row = 5;
@@ -1567,6 +1576,7 @@ void pseudo_loop::back_track(std::string structure, minimum_fold *f, seq_interva
 			break;
 		case P_WIP:
 		{
+			if(debug) printf("In WIP, at %d and %d\n",cur_interval->i,cur_interval->j);
 			cand_pos_t i = cur_interval->i;
 			cand_pos_t j = cur_interval->j;
 			if (i == j){
