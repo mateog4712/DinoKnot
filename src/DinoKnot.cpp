@@ -134,7 +134,7 @@ void can_pair(char a, char b){
 }
 
 void load_base_pairs(std::string file, std::vector< std::tuple<cand_pos_t,cand_pos_t> > &pairs){
-	if(!exists(base_pair_file)) return;
+	if(!exists(file)) return;
 	std::ifstream in (file);
 	std::string str;
 	while(getline(in,str)){
@@ -156,19 +156,17 @@ int main (int argc, char *argv[]) {
 	exit(1);
 	}
 
-	int model_1_Type = type_1;
-	int model_2_Type = type_2;
-
-	std::string inputFile = args_info.input_given ? input_file : "";
+	int model_1_Type = args_info.t1_arg;
+	int model_2_Type = args_info.t2_arg;
 
 	std::string inputSequence1;
 	std::string inputSequence2;
 	std::string inputStructure1;
 	std::string inputStructure2;
-	if(args_info.input_given) get_input(inputFile,inputSequence1,inputSequence2,inputStructure1,inputStructure2);
+	if(args_info.input_file_given) get_input(args_info.input_file_arg,inputSequence1,inputSequence2,inputStructure1,inputStructure2);
 
-	inputSequence1 = (args_info.sequence1_given) ? sequence_1 : "";
-	inputSequence2 = (args_info.sequence2_given) ? sequence_2 : "";
+	inputSequence1 = (args_info.s1_given) ? args_info.s1_arg : "";
+	inputSequence2 = (args_info.s2_given) ? args_info.s2_arg : "";
 	if(model_1_Type == 0) seqtoRNA(inputSequence1);
 	if(model_2_Type == 0) seqtoRNA(inputSequence2);
 
@@ -177,35 +175,20 @@ int main (int argc, char *argv[]) {
 	cand_pos_t n1 = inputSequence1.length();
 	cand_pos_t n2 = inputSequence2.length();
 
-	inputStructure1 = (args_info.structure1_given) ? structure_1 : std::string(n1,'.');
-	inputStructure2 = (args_info.structure2_given) ? structure_2 : std::string(n2,'.');
+	inputStructure1 = (args_info.r1_given) ? args_info.r1_arg : std::string(n1,'.');
+	inputStructure2 = (args_info.r2_given) ? args_info.r2_arg : std::string(n2,'.');
 	if(inputStructure1 != "") validateStructure(inputSequence1,inputStructure1);
 	if(inputStructure2 != "") validateStructure(inputSequence2,inputStructure2);
-	
-	
 
-				
-	std::string outputDir = args_info.dir_given ? output_dir : "";
-	std::string outputFile = args_info.output_given ? output_file : "";
-	std::string hotspotDir = args_info.h_only_given ? hotspot_dir : "";
-	std::string varnaFile = args_info.varna_given ? varna : "";
-	std::string basepairFile = args_info.basePairFile_given ? base_pair_file : "";
-	
-	std::vector<std::tuple<cand_pos_t,cand_pos_t> > pairs;
-	load_base_pairs(base_pair_file,pairs);
+	int max_hotspot = args_info.hotspot_num_given ? args_info.hotspot_num_arg : 20;
+	int number_of_suboptimal_structure = args_info.opt_given ? args_info.opt_arg : std::pow(max_hotspot,2);
 
-	int max_hotspot = args_info.h_num_given ? hotspot_num : 20;
-	int number_of_suboptimal_structure = args_info.subopt_given ? subopt : 100;
-
-	bool hotspot_only = args_info.h_only_given;
 
 	bool micro = args_info.micro_given;
 
 	bool hard = args_info.hard_given;
 
-	int dangle = args_info.dangles_given ? dangle_model : 1;
-
-	start_hybrid_penalty = args_info.pen_given ? hybrid_pen : lrint(get_START_HYBRID_PENALTY(model_1_Type,model_2_Type));
+	start_hybrid_penalty = args_info.pen_given ? args_info.pen_arg : lrint(get_START_HYBRID_PENALTY(model_1_Type,model_2_Type));
 
 	linker_pos = inputSequence1.length()+1;
 	linker_pos_right = inputSequence1.length()+5;
@@ -213,8 +196,8 @@ int main (int argc, char *argv[]) {
 //-----------------------------------------------------------------------------------------------------------
 	vrna_param_s *params1;
 	vrna_param_s *params2;
-	if(args_info.parameter1_given){
-		std::string file = parameter1;
+	if(args_info.paramFile1_given){
+		std::string file = args_info.paramFile1_arg;
 		if(file!=""){
 		vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
 		}
@@ -237,8 +220,8 @@ int main (int argc, char *argv[]) {
 			params1 = scale_parameters();
 		}
 	}
-	if(args_info.parameter2_given){
-		std::string file = parameter2;
+	if(args_info.paramFile2_given){
+		std::string file = args_info.paramFile2_arg;
 		if(file!=""){
 			vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
 		}
@@ -260,13 +243,16 @@ int main (int argc, char *argv[]) {
 			params2 = scale_parameters();
 		}
 	}
-	params1->model_details.dangles = dangle;
-	params2->model_details.dangles = dangle;
+	params1->model_details.dangles = args_info.dangles_arg;
+	params2->model_details.dangles = args_info.dangles_arg;
 //--------------------------------------------------------------------------------------------------------------------------
-	if(micro) args_info.structure1_given = true;
+	if(micro) args_info.r1_given = true;
+
+	std::vector<std::tuple<cand_pos_t,cand_pos_t> > pairs;
+	if(args_info.basePairFile_given) load_base_pairs(args_info.basePairFile_arg,pairs);
 	if(!pairs.empty()){
-		args_info.structure1_given = true; 
-		args_info.structure2_given = true;
+		args_info.r1_given = true; 
+		args_info.r2_given = true;
 		inputStructure1 = std::string(n1,'.');
 		inputStructure2 = std::string(n2,'.');
 		int npairs = pairs.size();
@@ -282,7 +268,7 @@ int main (int argc, char *argv[]) {
 	std::vector<Hotspot> hotspot_list1;
 	std::vector<Hotspot> hotspot_list2;
 	
-	if(args_info.structure1_given){
+	if(args_info.r1_given){
 		Hotspot hotspot(1,n1,n1+1);
 		hotspot.set_structure(inputStructure1);
 		hotspot_list1.push_back(hotspot);
@@ -290,7 +276,7 @@ int main (int argc, char *argv[]) {
 		get_hotspots(inputSequence1, hotspot_list1,max_hotspot,params1);
 	}
 
-	if(args_info.structure2_given){
+	if(args_info.r2_given){
 		Hotspot hotspot(1,n2,n2+1);
 		hotspot.set_structure(inputStructure2);
 		hotspot_list2.push_back(hotspot);
@@ -299,17 +285,15 @@ int main (int argc, char *argv[]) {
 		get_hotspots(inputSequence2, hotspot_list2,max_hotspot,params2);
 	}
 
-	cmdline_parser_free(&args_info);
-
 	// Generate full sequence after reversal of sequence 1 has occurred
 	std::string seq = inputSequence1 + "XXXXX" + inputSequence2;
 
-	if(hotspot_only){
-		std::ofstream out(hotspotDir.c_str());
-		if(!exists(hotspot_dir)){
+	if(args_info.hotspot_only_given){
+		if(!exists(args_info.hotspot_only_arg)){
 			std::cout << "Input File does not exist!" << std::endl;
 			exit (EXIT_FAILURE);
     	}
+		std::ofstream out(args_info.hotspot_only_arg);
 		cand_pos_t size1 = hotspot_list1.size();
 		cand_pos_t size2 = hotspot_list2.size();
 		for(cand_pos_t i =0; i < size1; i++){
@@ -359,21 +343,22 @@ int main (int argc, char *argv[]) {
 			number_of_output = std::min( (int) result_list.size(),number_of_suboptimal_structure);
 		}
 
-		if(varnaFile != "" && exists(varnaFile)){
+		if(args_info.varna_given && exists(args_info.varna_arg)){
+			std::string varna = args_info.varna_arg;
 			for(cand_pos_t i = 0; i < number_of_output; ++i){
-				std::string command = "java -cp " +  varnaFile +  " fr.orsay.lri.varna.applications.VARNAcmd -algorithm line -resolution 15.0 -basesStyle1 \"fill=##0000FF\" -basesStyle2 \"fill=#0000FF\" -basesStyle3 \"fill=#FFFF00\" -applyBasesStyle1on \"1-" + std::to_string(linker_pos-1) + "\" -applyBasesStyle2on \"" +  std::to_string(linker_pos) + "-" +  std::to_string(linker_pos+linker_length) + "\" -applyBasesStyle3on \"" +  std::to_string(linker_pos+linker_length+1) + "-" +  std::to_string(n) + "\" -sequenceDBN \"" + seq + "\" -structureDBN \"" + result_list[i].get_final_structure() + "\"" + " -o \"varna/file" + std::to_string(i) + ".png\"";
+				std::string command = "java -cp " +  varna +  " fr.orsay.lri.varna.applications.VARNAcmd -algorithm line -resolution 15.0 -basesStyle1 \"fill=##0000FF\" -basesStyle2 \"fill=#0000FF\" -basesStyle3 \"fill=#FFFF00\" -applyBasesStyle1on \"1-" + std::to_string(linker_pos-1) + "\" -applyBasesStyle2on \"" +  std::to_string(linker_pos) + "-" +  std::to_string(linker_pos+linker_length) + "\" -applyBasesStyle3on \"" +  std::to_string(linker_pos+linker_length+1) + "-" +  std::to_string(n) + "\" -sequenceDBN \"" + seq + "\" -structureDBN \"" + result_list[i].get_final_structure() + "\"" + " -o \"varna/file" + std::to_string(i) + ".png\"";
 				system(command.c_str());
 			}
 		}
 
 		//Mateo 7/19/2023
 		//output to file
-		if(outputFile != ""){
-			std::ofstream out(output_file);
-			if(!exists(output_file)){
+		if(args_info.output_file_given){
+			if(!exists(args_info.output_file_arg)){
 				std::cout << "file is not valid" << std::endl;
 				exit(EXIT_FAILURE);
 			}
+			std::ofstream out(args_info.output_file_arg);
 
 			out << "Seq:          " << seq << std::endl;
 			out << "Restricted_" << 0 << ": " << result_list[0].get_restricted() << std::endl;;
@@ -385,11 +370,12 @@ int main (int argc, char *argv[]) {
 			}
 			out.close();
 		}
-		else if(outputDir != ""){
+		else if(args_info.dir_given){
 			// Mateo 2023
-			if(exists(outputDir)){
-				if(outputDir[outputDir.length()] != '/') outputDir += '/';
-				std::string path_to_file = outputDir + "output_" + std::to_string(0) + ".txt";
+			if(exists(args_info.dir_arg)){
+				std::string dir = args_info.dir_arg;
+				if(dir[dir.length()] != '/') dir += '/';
+				std::string path_to_file = dir + "output_" + std::to_string(0) + ".txt";
 				std::ofstream out(path_to_file);
 				out << "Seq:          " << seq << std::endl;
 				out << "Restricted_" << 0 << ": " << result_list[0].get_restricted() << std::endl;;
@@ -397,7 +383,7 @@ int main (int argc, char *argv[]) {
 				out.close();
 				for (int i=1; i < number_of_output; ++i) {
 					if(result_list[i].get_final_structure() == result_list[i-1].get_final_structure()) continue;
-					std::string path_to_file = outputDir + "output_" + std::to_string(i) + ".txt";
+					std::string path_to_file = dir + "output_" + std::to_string(i) + ".txt";
 					std::ofstream out(path_to_file);
 					out << "Seq:          " << seq << std::endl;
 					out << "Restricted_" << i << ": " << result_list[i].get_restricted() << std::endl;;
@@ -421,5 +407,6 @@ int main (int argc, char *argv[]) {
 			}
 		}
 	}
+	cmdline_parser_free(&args_info);
 	return 0;
 }
